@@ -1,12 +1,34 @@
+<!-- KalkulaatorV3-top -->
+
 <?php
-  $app = JFactory::getApplication();
-$input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
+$app = JFactory::getApplication();
+$input = $app->input; 
+$fabv = $input->get('view');
+$lang = Joomla\CMS\Factory::getLanguage();
+$joomlaLang = $lang->getTag();
+
+$shortLang = strtolower(substr($joomlaLang, 0, 2));
+$ln = '';
+$more = $shortLang == 'et' ? 'NÄITA ROHKEM' : 'SHOW MORE';
+$less = $shortLang == 'et' ? 'NÄITA VÄHEM' : 'SHOW LESS';
+
+if ($shortLang != 'et') {
+  $ln = "/$shortLang";
+    // Küpsise formaat Google jaoks: /algkeel/sihtkeel (nt /et/en)
+    setcookie('googtrans', "/et/{$shortLang}", 0, '/');
+} else {
+    // Kui ollakse algkeeles, kustutame küpsise, et Google tõlke eemaldaks
+    setcookie('googtrans', '', time() - 3600, '/');
+}
+
+if ($fabv != 'details') { ?>
 <h3>Kalkulaatori kasutamiseks peate avama sobiva aasta lähteandmed.</h3>
 
 <?php
 } else {
   ?>
 <!-- Siit algab päismoodul -->
+  
       <div id="fb-root"></div>
       <script>
         (function (d, s, id) {
@@ -60,7 +82,7 @@ $input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
         <div class="row">
           <div class="col-sm-12">
             <script>initUbiAmountFromBaseData();</script>
-            <h2 style="font-size: 1.55em">
+            <h2 style="font-size: 1.55em; margin-bottom: 5px;" class="lh-1">
               Kui kodanikupalk oleks <span id="yearToObserve"></span>. aastal (olnud)
               <input style="
         background: #f7cb2b;
@@ -74,24 +96,17 @@ $input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
                 onclick="this.value = ''; resetAlert();">
               eurot kuus
             </h2>
-            <h6>
+            <h6 class="lh-1">
               (<input type="text" id="ubiPerYear" readonly="readonly" class="input-mini no-border h6" style="
         font-size: 0.9em;
         font-weight: bold;
         vertical-align: text-top;
         width: 77px;
       ">
-              aastas) <span id="targetPpl"></span> inimesele ja seniseid kulutusi
-              kärbitud <span id="reduceBy"></span> € võrra:
-              <input type="button" class="btn btn-warning btn-sm" onclick="document.getElementById('taxinfo').classList.toggle('visually-hidden');
-      document.getElementById('display-years').classList.toggle('btn-group-sm');
-      this.value=this.value=='PEIDA'?'NÄITA':'PEIDA';" value="PEIDA">
-            </h6>
-            <h6>
-              <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="ubi_child_x"
-                name="ubi_child_x" value="true" onchange="toggleChildUbi(this)"><label class="chk-label"
-                for="ubi_child_x" style="display: inline">Lastele teises suuruses</label><span id="ubi-child-box" class="d-none">:
-                lapsele
+              aastas) <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="ubi_child_x"
+                name="ubi_child_x" value="true" onchange="toggleChildUbi(this);document.getElementById('ei').classList.toggle('d-none')"><label class="chk-label"
+                for="ubi_child_x" style="display: inline">Lapsele teises suuruses?</label><span id="ei"> ei</span><span id="ubi-child-box" class="d-none">
+                jah, 
                 <input style="
         background: #f7cb2b;
         font-weight: bold;
@@ -110,7 +125,8 @@ $input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
         width: 77px;
       ">
                 aastas)
-              </span>
+              </span>. Kokku <span id="targetPpl"></span> inimesele ja seniseid kulutusi on kärbitud <span id="reduceBy"></span> € võrra:
+
             </h6>
           </div>
         </div>
@@ -118,18 +134,19 @@ $input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
         <div id="taxinfo" class="row">
           <div class="col-sm-8 col-L">
             <blockquote>
-              <ul>
+              <ul id="spendingNeed">
                 <li>Vajalik kate bruto: <span id="grossNeed"></span></li>
                 <li>Vajalik kate neto: <span id="realNeed"></span></li>
-                <li>
+                </ul>
+              <ul id="newTaxDesc">
+                <li class="lh-1">
                   Üksikisiku maksude variandid selle katmiseks:
-                  <!--span id="newTax"></span-->
                   <ol>
-                    <li>
+                    <li class="lh-1">
                       senine tulumaks asendatakse <span id="newFlatTax"></span>%
                       ühtlase maksuga
                     </li>
-                    <li>
+                    <li class="lh-1">
                       senine tulumaks jääb, nagu on, lisatakse uus maksukiht
                       <span id="addedTax"></span>%
                     </li>
@@ -141,7 +158,7 @@ $input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
 
           </div>
 
-          <div class="col-sm-4 col-R">
+          <div id="aboutRealTaxBurden" class="col-sm-4 col-R">
 
             <div class="info">
               <small>Kuid tegelik maksukoormus on alati kodanikupalga võrra väiksem. Seega
@@ -155,7 +172,7 @@ $input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
           </div>
         </div>
         <div class="row">
-          <div class="col-sm-12">
+          <div class="col-sm-10">
             <div id="altSentence" class="info bg-darkYellow p-1">
               <span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
@@ -177,46 +194,55 @@ $input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
 
             <div id="display-years" class="btn-group radio">
               <input class="btn-check" type="radio" name="year" value="2020"
-                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2020', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2020', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2020">
               <label class="btn btn-lg btn-success" for="year2020"> 2020</label>
 
               <input class="btn-check" type="radio" name="year" value="2021"
-                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2021', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2021', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2021">
               <label class="btn btn-lg btn-success" for="year2021">2021</label>
 
               <input class="btn-check" type="radio" name="year" value="2022"
-                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2022', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2022', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2022">
               <label class="btn btn-lg btn-success" for="year2022">2022</label>
 
               <input class="btn-check" type="radio" name="year" value="2023"
-                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2023', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2023', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2023">
               <label class="btn btn-lg btn-success" for="year2023">2023</label>
 
               <input class="btn-check" type="radio" name="year" value="2024"
-                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2024', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2024', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2024">
               <label class="btn btn-lg btn-success" for="year2024">2024</label>
 
               <input class="btn-check" type="radio" name="year" value="2025"
-                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2025', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2025', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2025">
               <label class="btn btn-lg btn-success" for="year2025">2025</label>
               <input class="btn-check" type="radio" name="year" value="2026"
-                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2026', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2026', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2026"
                 checked="checked">
               <label class="btn btn-lg btn-warning" for="year2026">2026</label>
             </div>
           </div>
+          <div class="col-sm-2">
+              <input type="button" class="btn btn-warning btn-sm" onclick="
+      document.getElementById('taxinfo').classList.toggle('visually-hidden');
+      document.getElementById('display-years').classList.toggle('btn-group-sm');
+      this.value=this.value==('<?php echo $more?>') ? '<?php echo $less?>':'<?php echo $more?>';" value="<?php echo $less?>">
+            
+          </div>
         </div>
       </div>
 <!-- Päismooduli lõpp -->
 <?php } ?>
+<!-- Lõpp: KalkulaatorV3-top -->
 
+<!-- KalkulaatorV3M (2)-->
 
 <?php
   $app = JFactory::getApplication();
@@ -501,7 +527,9 @@ $input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
       </div>
 <!-- Siin on teise mooduli lõpp!-->
 <?php }?>
+<!-- Lõpp: KalkulaatorV3M (2)-->
 
+<!-- KalkulaatorV3M (3)-->
 
 <?php
 $app = JFactory::getApplication();
@@ -861,8 +889,9 @@ if ($fabv == 'details')
 <!-- Kolmanda mooduli lõpp -->
 
 <?php }?>
+<!-- Lõpp: KalkulaatorV3M (3)-->
 
-
+<!--KalkulaatorV3-bottom-->
 <?php
 $app = JFactory::getApplication();
 $input = $app->input;
@@ -870,7 +899,25 @@ $fabv = $input->get('view');
 if ($fabv == 'details')
 {
   ?>
+  <!-- Põhjamooduli algus -->
     <script>document.addEventListener('DOMContentLoaded', initializeCalculator);</script>
 
+  <!-- 3. Google Translate nähtamatu element ja skript -->
+<div id="google_translate_element" style="display:none;"></div>
+
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'et',
+    layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+    autoDisplay: false
+  }, 'google_translate_element');
+}
+</script>
+
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+  
   <!-- Põhjamooduli lõpp -->
 <?php }?>
+<!--Lõpp: KalkulaatorV3-bottom-->
+
