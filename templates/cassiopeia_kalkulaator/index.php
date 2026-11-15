@@ -92,7 +92,7 @@ $wa->usePreset('template.cassiopeia.' . ($this->direction === 'rtl' ? 'rtl' : 'l
 
 // Kalkulaatori kitsa vaate (mobiili) abiskript: vahelehed, lähteandmete ja kärbete peitmise nupud,
 // diagrammide suurus. Versiooniks faili muutmisaeg, et brauser toob muudetud faili kohe uuesti.
-$calcMobileJs = '/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js';
+$calcMobileJs = 'media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js';
 $wa->registerAndUseScript(
     'template.calc-mobile',
     Uri::root(true) . $calcMobileJs,
