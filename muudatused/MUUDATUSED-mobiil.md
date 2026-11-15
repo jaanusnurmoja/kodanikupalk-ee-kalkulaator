@@ -10,7 +10,8 @@ Eesmärk: kalkulaator ja lähteandmed on kasutatavad telefonis ja tahvlis, aga t
 | `media/templates/site/cassiopeia_kalkulaator/css/user.css` | muudetud (originaal + lisatud mobiiliplokk lõpus) | vahelehed, peitmisnuppude stiil, tulemustabeli kitsas paigutus, ülevoolu parandused |
 | `media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js` | **uus** | vahelehtede loogika, peitmise/näitamise nuppude genereerimine, diagrammide kohandamine |
 | Kalkulaatori moodul (`kalkulaator-uus.phtml`) | muudetud | ainult tulemustabeli klassid + väikesed päisesildid |
-| `mobiil.diff` | — | kõik muudatused ühes unifitseeritud diffis (`patch -p1`) |
+| `mobiil.diff` | — | esimene versioon: kõik muudatused esialgse projektifaili vastu (aegunud, vt `mobiil-2.diff`) |
+| `mobiil-2.diff` | — | kehtiv: muudatused GitHubi repo seisu vastu (`patch -p1` repo juurest): `calc-fit-cols`, `index.php` skriptitee |
 
 ## Mis tehtud
 
@@ -45,7 +46,7 @@ Muudetud on ainult klasse ja lisatud on 27 väikest `<span class="calc-cap">` si
 1. Tee varukoopia: `index.php`, `user.css` ja kalkulaatori mooduli sisu.
 2. Laadi üles `calc-mobile.js` (uus) ja `user.css` — **enne** moodulit. Kui moodul jõuab lehele enne CSS-i, näeb arvutivaates korraks ka väikesi silte "Senise korra järgi / Kodanikupalgaga".
 3. Pane `index.php` oma kohale. Skripti versioon tuleb faili muutmisajast (`filemtime`), käsitsi versiooni tõsta ei ole vaja.
-4. Moodul: **ära asenda live-mooduli sisu täielikult** projekti phtml-iga. Live-versioonis on `ubi_child_x` `onchange` täiendatud (`document.getElementById('ei')…`), mida projekti `kalkulaator-uus.phtml`-is ei ole. Kasuta diffi (`patch -p1 < mobiil.diff` hoidla/koopia peal) või tee tulemustabeli muudatused käsitsi (14 rida + `F1`/`F2` + päiserida).
+4. Moodul: kasuta repo (GitHub) faili `moodulid/kalkulaator-uus.phtml` — see on live-mooduliga sünkroonitud (sh `ubi_child_x` `onchange` rida `document.getElementById('ei')…` ja kommentaarid mooduli piiridel). Esimese versiooni `mobiil.diff` põhines vanemal projektifailil ega sobi enam kasutamiseks; kehtiv on `mobiil-2.diff`.
 5. Puhasta Joomla vahemälu ja tee brauseris Ctrl+F5.
 6. Tagasivõtmine: taasta `index.php`, `user.css` ja moodul; `calc-mobile.js` võib jääda (ilma `.calc-layout`-ita ei tee ta midagi).
 
@@ -79,4 +80,34 @@ Muudetud on ainult klasse ja lisatud on 27 väikest `<span class="calc-cap">` si
 ## Leitud, aga mitte muudetud
 
 - `drawChart()` ei kutsuta pärast kodanikupalga summa, inimeste arvu ega kärpe muutmist, seetõttu võivad diagrammid näidata vana seisu (see on nii ka arvutivaates).
-- Live-mooduli `ubi_child_x` erineb projekti phtml-ist (vt paigaldus, punkt 4) — väärib kontrolli, kumb on õige.
+- Arvutivaates (≥ 992 px) on tabel `#pereneto` ("Kahelapselise pere netosissetulek") ja aastanuppude rida `#display-years` testlehel veerust laiemad (vasaku veeru piirini; lehe horisontaalkeritus ca 992–1440 px). See on originaalis samamoodi ja sellest ei ole muudetud, sest arvutivaade peab jääma samaks. Vajadusel saab neile lisada `overflow-x:auto` ümbrise.
+
+## Täiendus 2026-11-15
+
+1. **Moodul sünkroonis.** Live-mooduli `ei` rida ja mooduli piiride kommentaarid on nüüd phtml-is. Aluseks on repo (GitHub) `moodulid/kalkulaator-uus.phtml`, mitte esialgne projektifail.
+2. **Kahe veeru kokkujooks (phtml read 263–461, moodul 2).** Põhjus: `.col-sm-6` annab veerule alati 50% laiuse, aga vasaku veeru tabel (summaväli `#eur` ja nupurida) vajab rohkem, nii et see ulatus parema veeru alla. Parandus:
+   - reale `.row` lisatud klass `calc-fit-cols` (phtml);
+   - `user.css` lõpus: alates 576 px on veerud `flex: 1 1 50%` (nagu enne 50% + 50%), aga kui sisu poole laiusesse ei mahu, läheb "Mahaarvamised" "Maksustatava tulu" **alla**. Piir tuleb sisu enda laiusest, mitte kindlast ekraanilaiusest, nii et see ei sõltu päris saidi CSS-ist;
+   - nupurida `.btn-group.radio` murdub nende veergude sees vajadusel mitmele reale (ka arvutivaates);
+   - alla 576 px on `#eur` 100% laiune, et see tabelit ekraanist laiemaks ei venitaks.
+3. **`index.php` skriptiviide.** Tee on nüüd `media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js` ilma alguse kaldkriipsuta ja ilma `Uri::root(true)`-ta. Joomla `WebAssetItem` kontrollib `is_file(JPATH_ROOT . '/' . $path)` ja lisab ise saidi juure; kaldkriipsuga tee andis `//media/...`. Versiooni `filemtime` kasutab `JPATH_ROOT . '/' . $tee`. (Joomla 5.4 lähtekoodist kontrollitud; päris Joomlas ei testinud.)
+4. **GitHub.** Failid on repos https://github.com/jaanusnurmoja/kodanikupalk-ee-kalkulaator. `mobiil-2.diff` on tehtud selle repo seisu vastu: `patch -p1 < mobiil-2.diff` repo juurest.
+
+### Kontrollid
+
+| Kontroll | Tulemus |
+|---|---|
+| Moodul 2 col-L/col-R ülekate, 26 laiust (320–1920 px), enne parandust | kuni 127 px (kalibreeritud testlehel 192 px) |
+| Sama pärast parandust | 0 px, ülevoolu veerust 0 px |
+| Vahelehtedega vaade 576, 640, 700, 768, 900, 991 px, kus ülekatet polnud | piksliti identne (täislehe ekraanipilt enne/pärast) |
+| Telefon 320–575 px: `#eur` ei venita tabelit | korras (lehe laius = ekraani laius) |
+| Eelmised 61 automaatkontrolli (vahelehed, peitmisnupud, resize, ilma JS-ita, diagrammid) uue aluse peal | 61 läbitud, 0 ebaõnnestunud |
+
+### Mida pärast parandust näed
+
+- **Veerud mahuvad kõrvuti:** vaade on nagu enne.
+- **Ei mahu:** "Mahaarvamised" tuleb "Maksustatava tulu" alla (täislaiuses). Päris saidil sõltub see, millise laiuse juures see juhtub, vasaku tabeli tegelikust minimaalsest laiusest. Kui see juhtub sinu arvates liiga laial ekraanil (nt 1280 px), anna märku; siis tuleks `#eur` tegelik laius saidi CSS-ist üle vaadata.
+
+### Otsus sinu teha
+
+- **Alla 576 px `#eur` 100% laiune?** Praegu jah (vastasel juhul ületab ~310 px lai väli 320 px telefoni). Kui tahad, et väli jääks kitsaks, eemalda `@media (max-width: 575.98px)` plokk `user.css` lõpust ja anna väljale mõni kindel laius.

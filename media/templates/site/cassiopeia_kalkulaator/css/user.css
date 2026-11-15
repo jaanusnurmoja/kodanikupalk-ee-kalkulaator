@@ -254,3 +254,19 @@ blockquote .blockquote {
     white-space: nowrap;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Kõrvuti veerud, mille sisu ei pruugi poole laiusesse mahtuda (.calc-fit-cols,
+   moodul 2: "Maksustatav tulu" ja "Mahaarvamised").
+   Alates 576 px on veerud 50% + 50% nagu enne (col-sm-6). Kui ühe veeru sisu (nt tekstiväli
+   või nuppude rida) ei mahu poole laiusesse, läheb teine veerg selle ALLA, mitte peale.
+   Piir tuleb sisu enda minimaalsest laiusest, mitte kindlast ekraanilaiusest.
+   --------------------------------------------------------------------------- */
+.calc-fit-cols .btn-group.radio { flex-wrap: wrap; max-width: 100%; }
+@media (min-width: 576px) {
+  .calc-fit-cols > [class*="col-"] { flex: 1 1 50%; width: auto; max-width: none; }
+}
+/* Telefon (veerud on juba üksteise all): summaväli ei tohi tabelit ekraanist laiemaks venitada. */
+@media (max-width: 575.98px) {
+  .calc-fit-cols input#eur { width: 100%; }
+}

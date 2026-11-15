@@ -92,11 +92,13 @@ $wa->usePreset('template.cassiopeia.' . ($this->direction === 'rtl' ? 'rtl' : 'l
 
 // Kalkulaatori kitsa vaate (mobiili) abiskript: vahelehed, lähteandmete ja kärbete peitmise nupud,
 // diagrammide suurus. Versiooniks faili muutmisaeg, et brauser toob muudetud faili kohe uuesti.
+// Tee on ilma alguse kaldkriipsuta ja ilma Uri::root(true)-ta: Joomla (WebAssetItem) lisab ise saidi juure,
+// kaldkriipsuga alustades tuleks "//media/..." (brauser loeks selle teise hosti aadressiks).
 $calcMobileJs = 'media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js';
 $wa->registerAndUseScript(
     'template.calc-mobile',
-    Uri::root(true) . $calcMobileJs,
-    ['version' => (string) (@filemtime(JPATH_ROOT . $calcMobileJs) ?: 'auto')],
+    $calcMobileJs,
+    ['version' => (string) (@filemtime(JPATH_ROOT . '/' . $calcMobileJs) ?: 'auto')],
     ['defer' => true]
 );
 
