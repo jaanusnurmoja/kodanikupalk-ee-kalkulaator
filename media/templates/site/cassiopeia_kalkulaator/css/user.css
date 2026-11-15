@@ -1,0 +1,256 @@
+:root {
+    --cassiopeia-color-primary: #0a2333;
+    --cassiopeia-color-link: #144365;
+    --link-color: #144365;
+    --link-color-rgb: 20, 67, 101;
+    --cassiopeia-color-hover: #405777;
+  }
+
+img.logo {
+  float:inline-start;
+  margin-inline: 20px;
+}
+
+a.brand-logo {
+  text-decoration: none;
+}
+
+div.mod-languages ul {
+    margin: unset;
+    padding-top: 14px;
+    list-style: none;
+    vertical-align: text-bottom;
+}
+
+div.mod-languages li {
+  margin: 0
+}
+
+.container-header {
+    padding: 10px 0 0 0;
+background-image: linear-gradient(90deg, var(--cassiopeia-color-primary) 0%, var(--cassiopeia-color-hover) 100%);
+    position: relative;
+    box-shadow: inset 0 #00000008;
+}
+.container-header .grid-child {
+    padding: 0;
+}
+.header-menu {
+    padding: 0 0 10px 0;
+}
+
+.qx-h1,.qx-h2,.qx-h3,.qx-h4,.qx-h5,.qx-h6,.qx-heading-2xlarge,.qx-heading-large,.qx-heading-medium,.qx-heading-small,.qx-heading-xlarge,h1,h2,h3,h4,h5,h6 {
+    margin: 0 0 20px;
+    font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+    font-weight: 400;
+    /*color: #333;*/
+    text-transform: none
+}
+
+*+.qx-h1,*+.qx-h2,*+.qx-h3,*+.qx-h4,*+.qx-h5,*+.qx-h6,*+.qx-heading-2xlarge,*+.qx-heading-large,*+.qx-heading-medium,*+.qx-heading-small,*+.qx-heading-xlarge,*+h1,*+h2,*+h3,*+h4,*+h5,*+h6 {
+    /* margin-top:40px; */
+}
+
+.col-form-label {
+    padding-bottom: 0;
+}
+
+.form-label {
+    margin-bottom: 0;
+}
+
+.fabrikElementReadOnly {
+    margin-top: 0;
+}
+
+fieldset+fieldset {
+  margin-top: 0;
+}
+
+fieldset {
+    margin-bottom: 0;
+}
+
+.container-header .container-search {
+    margin-top: 0.3em;
+    max-width: 300px;
+    max-height: fit-content;
+}
+
+.nav.nav-tabs .nav-link.active {
+    background-color: var(--nav-link-color);
+    color: #ffffff;
+  }
+
+.mt-4 {
+   margin-top: unset; 
+}
+
+p {
+  margin-top:20px;
+}
+blockquote .blockquote {
+    margin: 0 0 20px;
+    font-size: 1.1rem;
+    line-height: 1rem;
+}
+.info {
+  line-height:.9;
+}
+
+.metismenu.mod-menu .metismenu-item > span, .metismenu.mod-menu .metismenu-item > a, .metismenu.mod-menu .metismenu-item > button {
+    white-space: unset;
+}
+
+.mb-3, .form-group {
+  border-style: outset;
+}
+.sticky-top{
+  z-index:920;
+}
+
+/* ==========================================================================
+   KALKULAATORI MOBIILIVAADE
+   Kitsas vaates (alla 992 px) saavad kaks veergu (lähteandmed ja kalkulaator)
+   vahelehed. Arvutivaade (alates 992 px) jääb samaks.
+   Seotud: index.php (märgend .calc-layout, .calc-tabs, .calc-pane-*),
+   js/calc-mobile.js (vahelehtede ja peitmisnuppude loogika) ja
+   kalkulaator-uus.phtml (tulemustabeli veerud).
+   Kitsa vaate piir (991.98px = Bootstrapi lg) on kirjas ainult ühes kohas:
+   allpool plokis "@media (max-width: 991.98px)". JS loeb piiri muutujast
+   --calc-narrow, seega piiri muutmisel piisab selle ühe plokiga.
+   ========================================================================== */
+
+/* JS loeb sellest, kas vaade on kitsas (0 = arvutivaade, 1 = kitsas vaade) */
+.calc-layout { --calc-narrow: 0; }
+
+/* Vahelehtede riba: arvutivaates alati peidus; kitsas vaates ilmub alles siis,
+   kui calc-mobile.js on käivitunud (.calc-js). Ilma JS-ita jäävad veerud lihtsalt üksteise alla. */
+.calc-tabs { display: none; }
+
+.calc-tab {
+  flex: 1 1 0;
+  padding: .6rem .75rem;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--cassiopeia-color-link, #144365);
+  background: #fff;
+  border: 2px solid var(--cassiopeia-color-link, #144365);
+  border-radius: .375rem;
+  cursor: pointer;
+}
+.calc-tab[aria-selected="true"] {
+  color: #fff;
+  background: var(--cassiopeia-color-link, #144365);
+}
+.calc-tab:focus-visible,
+.calc-toggle:focus-visible {
+  outline: 3px solid #f7cb2b;
+  outline-offset: 2px;
+}
+
+@media (max-width: 991.98px) {
+  .calc-layout { --calc-narrow: 1; }
+
+  .calc-layout.calc-js .calc-tabs {
+    display: flex;
+    gap: .5rem;
+    margin: .75rem 0 .5rem;
+    scroll-margin-top: 5rem;          /* kleepuva menüü all */
+  }
+  /* Ainult valitud vaheleht on nähtav (display:none tõstab ka fookusjärjekorrast välja) */
+  .calc-layout.calc-js[data-calc-pane="calc"] > .row > .calc-pane-data,
+  .calc-layout.calc-js[data-calc-pane="data"] > .row > .calc-pane-calc {
+    display: none;
+  }
+
+  /* Päisemooduli kaart on arvutivaates kleepuv (sticky-top); kitsas vaates võtaks see pool ekraani */
+  .calc-layout .card.position-sticky {
+    position: static !important;
+  }
+  .calc-layout .card-body {
+    padding: .75rem;
+  }
+
+  /* Hüpikmenüü-sarnased nupugrupid (aasta, sisendi liik, aluse valik) murduvad uuele reale */
+  .calc-pane-calc .btn-group.radio {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  /* Diagramm ja laiad tabelid (nt "Kahelapselise pere netosissetulek") ei tohi lehte laiendada */
+  .calc-pane-calc .chart {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .calc-pane-calc .card-body table:not(.table-calc) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+
+/* Lähteandmete ja kärbete peitmise/näitamise nupud (loob calc-mobile.js kitsas vaates) */
+.calc-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .25rem 0 1rem;
+}
+.calc-toggle {
+  flex: 1 1 12rem;
+  position: relative;
+  padding-right: 2rem;
+  text-align: left;
+}
+.calc-toggle::after {
+  content: "\25BE";                   /* ▾ */
+  position: absolute;
+  right: .75rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.calc-toggle[aria-expanded="true"]::after {
+  content: "\25B4";                   /* ▴ */
+}
+
+/* Tulemustabeli väikesed pealkirjad igas lahtris: nähtavad ainult telefoni laiusel (alla 576 px),
+   sest seal on iga rida kolmel real (nimetus, siis kaks väärtust kõrvuti) ja tulemustabeli
+   pealkirjarida on peidus. */
+.calc-cap { display: none; }
+
+@media (max-width: 575.98px) {
+  .calc-cap {
+    display: block;
+    font-size: .75rem;
+    line-height: 1.2;
+    font-weight: 400;
+    color: #6c757d;
+  }
+  .calc-head-row { display: none; }
+
+  /* Pealkirjad: päise h2 on HTML-is inline-stiiliga 1.55em, seepärast !important */
+  .calc-pane-calc h2 { font-size: 1.3rem !important; }
+  .calc-pane-calc h3 { font-size: 1.15rem; }
+  .calc-pane-calc h4 { font-size: 1.05rem; }
+  .calc-pane-calc .card-body h1 { font-size: 1.5rem; }
+
+  /* Aastanupud (btn-lg) väiksemaks, et mahuks kahele reale */
+  .calc-pane-calc #display-years .btn {
+    padding: .35rem .6rem;
+    font-size: 1rem;
+  }
+
+  /* Lähteandmed: kaks lahtrit reas (Fabrik annab col-sm-4, st telefonil üks lahter rea kohta) */
+  .calc-pane-data .fabrikGroup .row > .fabrikElementContainer.col-sm-4 {
+    width: 50%;
+  }
+  .calc-pane-data .fabrikGroup .row .fabrikElementReadOnly {
+    overflow-wrap: anywhere;          /* pikad sõned lähteandmete ruudustikus; tabelis mitte */
+  }
+  /* Kärbete tabelis ei tohi summa (nt 407822077.08) kahele reale murduda */
+  .calc-pane-data .repeatGroupTable [class*="___value_eur"] {
+    white-space: nowrap;
+  }
+}

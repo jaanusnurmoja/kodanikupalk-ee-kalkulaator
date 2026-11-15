@@ -1,0 +1,876 @@
+<?php
+  $app = JFactory::getApplication();
+$input = $app->input; $fabv = $input->get('view'); if ($fabv != 'details') { ?>
+<h3>Kalkulaatori kasutamiseks peate avama sobiva aasta lähteandmed.</h3>
+
+<?php
+} else {
+  ?>
+<!-- Siit algab päismoodul -->
+      <div id="fb-root"></div>
+      <script>
+        (function (d, s, id) {
+          var js,
+            fjs = d.getElementsByTagName(s)[0];
+          if (d.getElementById(id)) return;
+          js = d.createElement(s);
+          js.id = id;
+          js.src = "https://connect.facebook.net/et_EE/sdk.js#xfbml=1&version=v3.0";
+          fjs.parentNode.insertBefore(js, fjs);
+        })(document, "script", "facebook-jssdk");
+      </script>
+      <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+      <script>
+        var offset = 100;
+        /* some offset value for which when the header becomes hidden*/
+        jQuery(window).scroll(function () {
+          /*also an option: jQuery .on('scroll') method*/
+          if (
+            jQuery("#top-navbar").is(":visible") &&
+            jQuery(window).scrollTop() < offset
+          ) {
+            /*jQuery('#top-navbar').fadeOut(200);*/
+          } else if (
+            !jQuery("#fixed_bar").is(":visible") &&
+            jQuery(window).scrollTop() > offset
+          ) {
+            /*jQuery('#top-navbar').fadeIn(200);*/
+          }
+        });
+      </script>
+      <div class="mt-0" id="body"></div>
+      <script>
+        document.write("");
+      </script>
+      <noscript>
+        <p class="error">
+          <img src="/./images/alert.gif" alt="Alert!" />&nbsp;<b>VIGA!</b>
+          Veebisirvijas peab olema lubatud JavaScript!
+        </p>
+
+      </noscript>
+
+
+      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261031"></script>
+
+      <script>checkPeople();</script>
+
+      <div class="calc-container" style="width: 100%">
+        <div class="row">
+          <div class="col-sm-12">
+            <script>initUbiAmountFromBaseData();</script>
+            <h2 style="font-size: 1.55em">
+              Kui kodanikupalk oleks <span id="yearToObserve"></span>. aastal (olnud)
+              <input style="
+        background: #f7cb2b;
+        font-weight: bold;
+        font-size: 1em;
+        width: 90px;
+        vertical-align: text-top;
+      " type="text" id="ubi-amount" class="input-mini"
+                onchange="onUbiAmountChange(this)"
+                onkeyup="onUbiAmountChange(this)"
+                onclick="this.value = ''; resetAlert();">
+              eurot kuus
+            </h2>
+            <h6>
+              (<input type="text" id="ubiPerYear" readonly="readonly" class="input-mini no-border h6" style="
+        font-size: 0.9em;
+        font-weight: bold;
+        vertical-align: text-top;
+        width: 77px;
+      ">
+              aastas) <span id="targetPpl"></span> inimesele ja seniseid kulutusi
+              kärbitud <span id="reduceBy"></span> € võrra:
+              <input type="button" class="btn btn-warning btn-sm" onclick="document.getElementById('taxinfo').classList.toggle('visually-hidden');
+      document.getElementById('display-years').classList.toggle('btn-group-sm');
+      this.value=this.value=='PEIDA'?'NÄITA':'PEIDA';" value="PEIDA">
+            </h6>
+            <h6>
+              <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="ubi_child_x"
+                name="ubi_child_x" value="true" onchange="toggleChildUbi(this)"><label class="chk-label"
+                for="ubi_child_x" style="display: inline">Lastele teises suuruses</label><span id="ubi-child-box" class="d-none">:
+                lapsele
+                <input style="
+        background: #f7cb2b;
+        font-weight: bold;
+        font-size: 1em;
+        width: 90px;
+        vertical-align: text-top;
+      " type="text" id="ubi-amount-child" class="input-mini"
+                  onchange="onUbiAmountChange(this)"
+                  onkeyup="onUbiAmountChange(this)"
+                  onclick="this.value = ''; resetAlert();">
+                eurot kuus
+                (<input type="text" id="ubiChildPerYear" readonly="readonly" class="input-mini no-border h6" style="
+        font-size: 0.9em;
+        font-weight: bold;
+        vertical-align: text-top;
+        width: 77px;
+      ">
+                aastas)
+              </span>
+            </h6>
+          </div>
+        </div>
+
+        <div id="taxinfo" class="row">
+          <div class="col-sm-8 col-L">
+            <blockquote>
+              <ul>
+                <li>Vajalik kate bruto: <span id="grossNeed"></span></li>
+                <li>Vajalik kate neto: <span id="realNeed"></span></li>
+                <li>
+                  Üksikisiku maksude variandid selle katmiseks:
+                  <!--span id="newTax"></span-->
+                  <ol>
+                    <li>
+                      senine tulumaks asendatakse <span id="newFlatTax"></span>%
+                      ühtlase maksuga
+                    </li>
+                    <li>
+                      senine tulumaks jääb, nagu on, lisatakse uus maksukiht
+                      <span id="addedTax"></span>%
+                    </li>
+                  </ol>
+                  (kummalgi juhul ilma maksuvaba osata)
+                </li>
+              </ul>
+            </blockquote>
+
+          </div>
+
+          <div class="col-sm-4 col-R">
+
+            <div class="info">
+              <small>Kuid tegelik maksukoormus on alati kodanikupalga võrra väiksem. Seega
+                - mida tähendavad need protsendinumbrid tegelikult ühe või teise
+                palganumbri korral? Seda ütleb allpool olev kalkulaator, mille
+                loomisel on aluseks ja eeskujuks võetud
+                <a href="https://www.kalkulaator.ee/et/palgakalkulaator" target="_blank">kalkulaator.ee
+                  palgakalkulaator.</a>
+              </small>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-sm-12">
+            <div id="altSentence" class="info bg-darkYellow p-1">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                  class="bi bi-info-circle" viewBox="0 0 16 16">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"></path>
+                  <path
+                    d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0">
+                  </path>
+                </svg>
+              </span>
+              <span>
+                <small>Kui kodanikupalk oleks (olnud) <span id="sametax" class="d-none">täiskasvanule <span
+                      id="altAdult"></span> € ja lapsele <span id="altChild"></span> €</span> <span id="or"
+                    class="d-none">või</span> <span id="sametaxB">lapsele <span id="altChildB"></span> € ja
+                    täiskasvanule <span id="altAdultB"></span> €, siis oleksid kulud ja maksuvajadused (olnud)
+                    sama suured nagu kõigile võrdse <span id="equalUbi"></span> € korral</span></small>
+              </span>
+            </div>
+
+            <div id="display-years" class="btn-group radio">
+              <input class="btn-check" type="radio" name="year" value="2020"
+                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2020', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2020">
+              <label class="btn btn-lg btn-success" for="year2020"> 2020</label>
+
+              <input class="btn-check" type="radio" name="year" value="2021"
+                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2021', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2021">
+              <label class="btn btn-lg btn-success" for="year2021">2021</label>
+
+              <input class="btn-check" type="radio" name="year" value="2022"
+                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2022', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2022">
+              <label class="btn btn-lg btn-success" for="year2022">2022</label>
+
+              <input class="btn-check" type="radio" name="year" value="2023"
+                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2023', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2023">
+              <label class="btn btn-lg btn-success" for="year2023">2023</label>
+
+              <input class="btn-check" type="radio" name="year" value="2024"
+                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2024', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2024">
+              <label class="btn btn-lg btn-success" for="year2024">2024</label>
+
+              <input class="btn-check" type="radio" name="year" value="2025"
+                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2025', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2025">
+              <label class="btn btn-lg btn-success" for="year2025">2025</label>
+              <input class="btn-check" type="radio" name="year" value="2026"
+                onclick="window.open('/kalkulaator/ubi-model-archive/details/59/2026', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2026"
+                checked="checked">
+              <label class="btn btn-lg btn-warning" for="year2026">2026</label>
+            </div>
+          </div>
+        </div>
+      </div>
+<!-- Päismooduli lõpp -->
+<?php } ?>
+
+
+<?php
+  $app = JFactory::getApplication();
+  $input = $app->input;
+  $fabv = $input->get('view');
+  if ($fabv != 'details') { ?>
+
+<h3>Kalkulaatori kasutamiseks peate avama sobiva aasta lähteandmed.</h3>
+
+<?php
+  } else {
+  ?>
+<!-- Siit algab teine moodul -->
+      <div class="calc-container" style="width: 100%">
+
+        <script>initUbiModel();</script>
+
+        <div class="row">
+          <div class="col-sm-6 col-L">
+            <table class="table-calc">
+              <tbody>
+                <tr>
+                  <td colspan="2">
+                    <h2 class="toc1 toc-input">Maksustatav tulu (nt töötasu)</h2>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="W50pct" colspan="2" style="text-align: center">
+                    <p>
+                      <strong>Kui summa allpool lahtris oleks (vali)...</strong>
+                    </p>
+                    <div class="btn-group radio" style="padding: 0 0 8px 0">
+                      <input class="btn-check" type="radio" id="input_1" name="input" value="1"
+                        onkeyup="outputCalc();drawChart();displayAlert();"
+                        onchange="outputCalc();drawChart();displayAlert();"
+                        onclick="outputCalc();drawChart(); displayAlert();">
+                      <label class="btn" for="input_1">Tööandja kulu</label>
+
+                      <div id="help1-title" class="handcursor" style="display: inline; margin: 8px">
+                        <!--sup class="helpicon">&nbsp;?&nbsp;</sup-->
+                        <img src="/images/help16.png" class="help" style="display: inline; z-index: 10" alt="help1"
+                          data-toggle="popover" data-placement="bottom"
+                          data-content="Tööandja kogukulu, sealhulgas töötajale töö eest makstav töötasu, muud tasud ning hüvitised koos kõigi maksude ja maksetega(töötuskindlustusmakse ning kogumispensioni teise sambaga liitumise korral kogumispensioni makse), muud tasud ning hüvitised."
+                          aria-label="Tööandja kulu («palgafond»)"
+                          data-bs-original-title="Tööandja kulu («palgafond»)">
+                      </div>
+
+                      <input class="btn-check" type="radio" id="input_2" name="input" value="2" checked="checked"
+                        onkeyup="outputCalc();drawChart();displayAlert();"
+                        onchange="outputCalc();drawChart();displayAlert();"
+                        onclick="outputCalc();drawChart(); displayAlert();">
+                      <label class="btn" for="input_2">Brutopalk</label>
+
+                      <div id="help2-title" class="handcursor" style="display: inline; margin: 8px">
+                        <img src="/images/help16.png" class="help" style="z-index: 10" alt="help2" data-html="true"
+                          data-toggle="popover" data-placement="bottom"
+                          data-content="&lt;p&gt;Töölepingus või õigusaktis kindlaks määratud töötasu, sealhulgas majandustulemustelt ja tehingutelt makstav tasu, mille hulka on arvutatud seaduse alusel kinnipidamisele kuuluvad maksud ja maksed (s.h. tulumaks, töötaja (kindlustatu) töötuskindlustusmakse ning kogumispensioni teise sambaga liitumise korral kogumispensioni makse).&lt;/p&gt;&lt;p&gt;&lt;b&gt;2022. aastal on töötasu alammääraks täistööajaga töötamise korral tunnis 3,86 eurot ja kuus 654 eurot (vt &lt;a href='https://www.riigiteataja.ee/akt/111122021017?leiaKehtiv' target='_blank' onclick=\'trackOutboundLink('https://www.riigiteataja.ee/akt/111122021017?leiaKehtiv'); return false;\'&gt;VVM 09.12.2020 nr 116&lt;/a&gt;).&lt;/b&gt;&lt;/p&gt;"
+                          aria-label="Brutopalk" data-bs-original-title="Brutopalk">
+                      </div>
+
+                      <input class="btn-check" type="radio" id="input_3" name="input" value="3"
+                        onkeyup="outputCalc();drawChart();displayAlert();"
+                        onchange="outputCalc();drawChart();displayAlert();"
+                        onclick="outputCalc();drawChart(); displayAlert();">
+                      <label class="btn" for="input_3">Netotulu</label>
+
+                      <div id="help3-title" class="handcursor" style="display: inline; margin: 8px">
+                        <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                          style="z-index: 10" alt="help3" data-toggle="popover" data-placement="bottom"
+                          data-content="Töötasu ning muude tasude ning hüvitiste summa, mille töötaja saab kätte pärast maksude ning maksete (sealhulgas tulumaks, töötuskindlustusmakse ning kogumispensioni teise sambaga liitumise korral kogumispensioni makse) jne) maha arvamist."
+                          aria-label="Netopalk" data-bs-original-title="Netopalk">
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="W50pct" style="text-align: left" colspan="2">
+                    <script>initEurFromBaseData();</script>
+                    <input class="vis input-large col-md-8 R W120 fs-3" id="eur" name="eur" value="" type="text"
+                      oninput="setEurGross(this.value);outputCalc();drawChart(); displayAlert();"
+                      onkeyup="setEurGross(this.value);outputCalc();drawChart(); displayAlert();"
+                      onchange="setEurGross(this.value);outputCalc();drawChart();"
+                      onclick="this.value = ''; resetAlert();">&nbsp;€ kuus
+                    <br>
+                    <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="adults2_x"
+                      name="adults2_x" value="true" onchange="wageCalc();"><label class="chk-label" for="adults2_x"
+                      style="display: inline" title="Mõlemal täiskasvanul on sama tulu">2 täiskasvanut</label>
+                    &nbsp;&nbsp;
+                    <label class="chk-label" for="children_count" style="display: inline">Lapsi:</label>
+                    <input class="vis input-mini R W60" style="display: inline; width: 60px" type="number" min="0"
+                      step="1" value="0" id="children_count" name="children_count" oninput="wageCalc();"
+                      onchange="wageCalc();">
+                    <br><small>vaikimisi ilmub siia keskmine brutopalk</small>
+                    <br><small>proovi ka mediaanpalgaga: <span id="medianhint">1800.00</span></small>
+                    <script>initMedianHint();</script>
+                    <select class="select120 input-small form-control-plaintext visually-hidden" disabled="disabled"
+                      id="period" name="period"
+                      onclick="toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();"
+                      onchange="ChangeTFMLabel(GetSelectValue(period)); toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();"
+                      onkeyup="toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();">
+                      <option value="1">tunnis</option>
+                      <option value="2" selected="selected">kuus</option>
+                      <option value="3" id="annual">aastas</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr id="hours_row" style="display: none">
+                  <td>Töötundide arv kuus</td>
+                  <td>
+                    <input class="vis input-mini R W60 fs-4" type="text" id="workhours" name="workhours"
+                      onkeyup="outputCalc();drawChart();" onclick="this.value = '';" value="168" maxlength="4">
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+            <br>
+          </div>
+          <div class="col-sm-6 col-R">
+            <table class="table-calc">
+              <tbody>
+                <tr>
+                  <td colspan="2">
+                    <h2 class="toc1">Mahaarvamised</h2>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox"
+                      id="socialtax_x" name="socialtax_x" value="true" onkeyup="outputCalc();drawChart();"
+                      onchange="outputCalc();drawChart();" onclick="outputCalc();drawChart();displayAlert();">
+                    <!--div id="minSocialtax" style="display:inline"--><label class="chk-label" id="socialtaxLabel"
+                      for="socialtax_x" style="display: inline">Arvesta sotsiaalmaksu min. kuumäära
+                      alusel</label>&nbsp;
+                    <div id="help7-title" class="handcursor" style="display: inline">
+                      <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                        alt="help7" data-html="true" data-toggle="popover" data-placement="bottom"
+                        data-content="&lt;p&gt;Sotsiaalmaksuseaduse § 2&lt;sup&gt;1&lt;/sup&gt; alusel kehtestatav sotsiaalmaksu maksmise aluseks olev &lt;a href='https://www.riigiteataja.ee/akt/RES2021#para2lg7' target='_blank'&gt;kuumäär&lt;/a&gt; on 2021.-2022 aastal 584 eurot, seega sotsiaalmaksu minimaalne kohustus on 192,72 eurot kuus. Vt. täpsemalt &lt;a href='https://www.riigiteataja.ee/akt/123122013060?leiaKehtiv' target='_blank'&gt;sotsiaalmaksuseadusest&lt;/a&gt;.&lt;/p&gt;"
+                        aria-label="Sotsiaalmaksu kuumäär" data-bs-original-title="Sotsiaalmaksu kuumäär">
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="taxfree_x"
+                      name="taxfree_x" value="true" onkeyup="outputCalc();drawChart();"
+                      onchange="outputCalc();drawChart();"
+                      onclick="toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0);outputCalc();drawChart();"
+                      checked="checked"><label class="chk-label" id="taxfreeLabel" style="display: inline"
+                      for="taxfree_x">Arvesta maksuvaba tulu (<span id="tfm">700</span> € kuus<span id="period_unit"
+                        class="visually-hidden"></span>)</label>&nbsp;
+                    <div id="help8-title" class="handcursor" style="display: inline">
+                      <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                        alt="help8" data-html="true" data-toggle="popover" data-placement="bottom"
+                        data-content="&lt;p&gt;Eesti residendist füüsilise isiku maksustamisperioodi tulust maha arvatav maksuvaba tulu.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;Aastatuluga &lt;strong&gt;kuni&lt;/strong&gt; &lt;strong&gt;14&nbsp;400&lt;/strong&gt;&nbsp;eurot on maksuvaba tulu &lt;strong&gt;6000&nbsp;eurot aastas&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Aastatulu kasvades &lt;strong&gt;14&nbsp;400&nbsp;eurolt 25&nbsp;200&nbsp;euroni&lt;/strong&gt; väheneb maksuvaba tulu vastavalt valemile &lt;strong&gt;6000 – 6000 ÷ 10 800 × (tulu summa – 14&nbsp;400)&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Aastatuluga &lt;strong&gt;üle 25&nbsp;200 euro&lt;/strong&gt; on maksuvaba tulu &lt;strong&gt;0&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Vt. ka &lt;a href='https://www.riigiteataja.ee/akt/117122015023?leiaKehtiv#para23' target='_blank'&gt;tulumaksuseadus (TuMS) §&nbsp;23&lt;/a&gt;.&lt;/p&gt;&lt;h3&gt;Töötasu muutus&lt;/h3&gt;&lt;p&gt;Kui soovite arvutada kui palju kasvavad tööandja kulud näiteks brutotöötasu tõstmisel või kui palju tõuseb töötaja netopalk kui brutopalga tõus on näiteks 50 eurot, siis jätke väli «Arvesta maksuvaba tulu» tühjaks ning sisestage lähteandmetesse ainult palgamuutuse summa.&lt;/p&gt;"
+                        aria-label="Maksuvaba tulu alates 2018. aastast"
+                        data-bs-original-title="Maksuvaba tulu alates 2018. aastast">
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" type="checkbox" id="ui1_x" name="ui1_x" value="true"
+                      style="display: inline; margin: 3px" onkeyup="outputCalc();drawChart();"
+                      onchange="outputCalc();drawChart();" onclick="outputCalc();drawChart();"
+                      checked="checked"><label class="chk-label" id="UIEmployerLabel" for="ui1_x"
+                      style="display: inline">Tööandja töötuskindlustusmakse (<span
+                        id="ui1">0.8</span>%)</label>&nbsp;
+                    <div id="help9-title" class="handcursor" style="display: inline">
+                      <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                        alt="help9" data-html="true" data-toggle="popover" data-placement="bottom"
+                        data-content="&lt;p&gt;Töötuskindlustusmakse määrad sätestatakse töötuskindlustuse seaduse § 41 lõike 4 alusel &lt;a href='https://www.riigiteataja.ee/akt/117092019004?leiaKehtiv' target='_blank'&gt;Vabariigi Valitsuse määrusega&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;Tööandja töötuskindlustusmakse määr 2020–2023. aastal on 0,8%&lt;/p&gt;&lt;p&gt; Töötaja (kindlustatu) töötuskindlustusmakse määr 2020–2023. aastal on 1,6%&lt;/p&gt;&lt;p&gt;&lt;a href='https://www.riigiteataja.ee/akt/106072013008?leiaKehtiv' target='_blank'&gt;Töötuskindlustuse seaduse&lt;/a&gt; kohaselt on antud makse maksjateks s.h. töötaja, avalik teenistuja, võlaõigusliku lepingu alusel teenust osutav füüsiline isik. Töötaja ja tööandja makse määrad järgmiseks kalendriaastaks kehtestab Vabariigi Valitsus hiljemalt jooksva kalendriaasta 1. detsembriks.&lt;/p&gt;&lt;hr/&gt;&lt;p&gt;&lt;b&gt;NB!&lt;/b&gt; Juhul kui töötaja (kindlustatu) on jõudnud vanaduspensioniikka või talle on määratud riikliku pensionikindlustuse seaduse §-s 9 sätestatud ennetähtaegne vanaduspension, arvestatakse töötajale töötuskindlustusmakset üksnes &lt;b&gt;tööandjale&lt;/b&gt; kehtestatud määras.&lt;/p&gt;"
+                        aria-label="Töötuskindlustusmakse" data-bs-original-title="Töötuskindlustusmakse">
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" type="checkbox" id="ui2_x" name="ui2_x" value="true"
+                      onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();"
+                      onclick="outputCalc();drawChart();" style="display: inline; margin: 3px"><label
+                      class="chk-label" id="UIEmployeeLabel" for="ui2_x" style="display: inline">Töötaja
+                      (kindlustatu) töötuskindlustusmakse (<span id="ui2">1.6</span>%)</label>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" type="checkbox" id="pension_x" name="pension_x" value="true"
+                      onclick="toggleRadioVisibility(getYear(), this.selectedIndex == 0); outputCalc(); drawChart();"
+                      onchange="toggleRadioVisibility(getYear(), this.selectedIndex == 0); outputCalc(); drawChart();"
+                      style="display: inline; margin: 3px"><label class="chk-label" id="fundedPensionLabel"
+                      for="pension_x" style="display: inline">Kogumispension (II sammas)</label>&nbsp;
+                    <div id="help10-title" class="handcursor" style="display: inline">
+                      <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                        alt="help10" data-html="true" data-toggle="popover" data-placement="bottom"
+                        data-content="&lt;p&gt;Makset on kohustatud tasuma kogumispensioni II sambaga vabatahtlikult liitunud või seadusega kohustatud residendist füüsiline isik (kes on esitanud maksete jätkamise avalduse), kui tema elukoht on Eestis või kui ta viibib Eestis 12 järjestikuse kalendrikuu jooksul vähemalt 183 päeva. Makse määraks on 2% &lt;a href='https://www.riigiteataja.ee/akt/125102012014?leiaKehtiv' target='blank_'&gt;kogumispensionide seaduse&lt;/a&gt; § 7 lõikes 1 nimetatud summadelt.&lt;/p&gt;"
+                        aria-label="Kogumispensioni makse" data-bs-original-title="Kogumispensioni makse">
+                    </div>
+                  </td>
+                </tr>
+                <tr id="fp2014" style="display: none">
+                  <td>&nbsp;</td>
+                  <td>
+                    <input class="css-radio" type="radio" id="p4" name="fp2014" value="1"
+                      onchange="wageCalc();drawChart();" onclick="wageCalc();drawChart();" checked="checked"><label
+                      class="css-label" for="p4">Ei esitanud maksemäära ajutise tõstmise avaldust</label><br>
+                    <input class="css-radio" type="radio" id="p5" name="fp2014" value="2"
+                      onchange="wageCalc();drawChart();" onclick="wageCalc();drawChart();"><label class="css-label"
+                      for="p5">Esitas 2013. a maksemäära ajutise tõstmise avalduse</label><br>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <br>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12 col-sm-6">
+            <input class="css-radio disabled visually-hidden" type="radio" id="F1" name="tfx" value="1"
+              onkeyup="outputCalc();drawChart();disable();displayAlert();"
+              onclick="outputCalc();drawChart();disable(); displayAlert();" checked="checked"
+              style="display: inline; margin: 3px"><label class="css-label" style="display: inline"
+              for="F1">Maksuvaba tulu</label>&nbsp;
+            <span id="help5-title" class="handcursor" style="display: inline" disabled="disabled">
+              <img src="/images/help16.png" class="help" alt="help5" data-html="true" data-toggle="popover"
+                data-placement="bottom"
+                data-content="&lt;ul&gt;&lt;li&gt;&lt;p&gt;aastatuluga &lt;strong&gt;kuni&lt;/strong&gt; &lt;strong&gt;14&nbsp;400&lt;/strong&gt;&nbsp;eurot on maksuvaba tulu &lt;strong&gt;6000&nbsp;eurot aastas&lt;/strong&gt;,&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;aastatulu kasvades &lt;strong&gt;14&nbsp;400&nbsp;eurolt 25&nbsp;200&nbsp;euroni&lt;/strong&gt; väheneb maksuvaba tulu vastavalt valemile &lt;strong&gt;6000 – 6000 ÷ 10 800 × (tulu summa – 14&nbsp;400)&lt;/strong&gt;,&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;aastatuluga &lt;strong&gt;üle 25&nbsp;200 euro&lt;/strong&gt; on maksuvaba tulu &lt;strong&gt;0&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;"
+                aria-label="Maksuvababa tulu" data-bs-original-title="Maksuvababa tulu">
+            </span>
+            <span>
+              <input class="vis input-mini R W120 form-control-plaintext" disabled="disabled" id="taxfree_sum"
+                name="taxfree_sum" value="0.00" type="text"
+                onkeyup="wageCalc();drawChart(); displayAlert();value=minmax(value,year);"
+                onchange="wageCalc();drawChart();"
+                oninput="document.getElementById('tmpdebug').innerHTML=value+','+year;"
+                onclick="this.value = ''; resetAlert();"></span>
+            <span>€ kuus</span>
+            <span id="taxfree_period_row" style="display: table-row" class="row visually-hidden">
+              <span>
+                <select class="select120 input-small form-control-plaintext disabled" disabled="disabled"
+                  id="taxfree_period" name="taxfree_period" onchange="outputCalc(); drawChart();"
+                  onkeyup="outputCalc(); drawChart();">
+                  <option value="1" id="M" selected="selected">kuus</option>
+                  <option value="12" id="A">aastas</option>
+                </select>
+              </span>
+            </span>
+          </div>
+          <div class="col-12 col-sm-6">
+            <span>
+              <input class="css-radio disabled visually-hidden" disabled="disabled" type="radio" id="F2" name="tfx"
+                value="2" onclick="outputCalc();drawChart();disable();displayAlert();" style="display: inline">
+            </span>
+            <label class="css-label" style="display: inline; margin: 3px" for="F2">Aastatulu (bruto)</label>
+            <span id="help6-title" class="handcursor" style="display: inline">
+              <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help" alt="help6"
+                data-html="true" data-toggle="popover" data-placement="bottom"
+                data-content="&lt;p&gt;Aastatulu hulka arvestatakse:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;tulumaksuga maksustatav tulu (sh välismaalt saadud tulu)&lt;/li&gt;&lt;li&gt;välismaal saadud töötasu ja muu tasu ning dividend, mida Eestis tulumaksuga ei maksustata&lt;/li&gt;&lt;li&gt;Eesti äriühingult saadud dividend või omakapitali väljamakse, mis on äriühingu tasandil maksustatud&lt;/li&gt;&lt;li&gt;ettevõtlustulu lihtsustatud maksustamise seaduse alusel maksustatud summa, mida on vähendatud ettevõtlustulu maksu sotsiaalmaksu võrra&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Aastatuluna arvestatakse töötasu ja muu tasu, võlaõigusliku lepingu alusel saadud teenustasu, ettevõtlustulu, kasu vara võõrandamisest, &lt;b&gt;dividende&lt;/b&gt;, rendi- ja üüritulu, litsentsitasu, intresse, &lt;b&gt;maksustatavat&lt;/b&gt; pension, toetusi, stipendiume, preemiat, hüvitisi või muud tulu.&lt;br/&gt;&lt;br/&gt;Aastatuluna ei arvestata &lt;b&gt;maksuvabasid&lt;/b&gt; hüvitisi, toetusi ja stipendiume ning maksuvabastusi (nt eluaseme või isiklikus tarbimises oleva vallasasja müük), mida füüsilise isiku tuludeklaratsioonis ei deklareerita.&lt;/p&gt;"
+                aria-label="Aastatulu" data-bs-original-title="Aastatulu">
+            </span>
+            <span>
+              <input class="disabled form-control-plaintext vis input-mini R W120" id="annual_revenue"
+                name="annual_revenue" value="0.00" type="text" onkeyup="wageCalc();drawChart(); displayAlert();"
+                onchange="wageCalc();drawChart();" onclick="this.value = ''; resetAlert();" disabled="disabled">
+            </span>
+            <span> € kuus</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <div id="socialtaxalert" class="alert" style="display: none">
+              <span><img src="https://www.kalkulaator.ee/images/alert.png" alt="Alert">
+                Sisestatud summa on väiksem, kui sotsiaalmaksu kuumäär!</span>
+            </div>
+          </div>
+
+          <script>initCharts();</script>
+
+        </div>
+      </div>
+<!-- Siin on teise mooduli lõpp!-->
+<?php }?>
+
+
+<?php
+$app = JFactory::getApplication();
+$input = $app->input;
+$fabv = $input->get('view');
+if ($fabv == 'details')
+{
+  ?>
+
+<!-- Siin algab kolmas moodul!-->
+
+      <div class="result-container">
+        <h2 class="toc1 toc-result">Tulemus</h2>
+        <h4 style="display:inline;">Vali, mis tuleb arvutamisel aluseks võtta (mida lugeda 100 protsendiks): </h4>
+        <div class="btn-group radio" style="display:inline;">
+          <input class="btn-check" type="radio" id="pct1" name="percent" value="1" onchange="wageCalc();"
+            onclick="wageCalc();" onkeyup="wageCalc();">
+          <label class="btn" for="pct1">Tööandja kulud (palgafond)</label>
+          <input class="btn-check" type="radio" id="pct2" name="percent" value="2" onchange="wageCalc();"
+            onclick="wageCalc();" onkeyup="wageCalc();" checked="checked">
+          <label class="btn" for="pct2">Brutopalk</label>
+          <input class="btn-check" type="radio" id="pct3" name="percent" value="3" onchange="wageCalc();"
+            onclick="wageCalc();" onkeyup="wageCalc();">
+          <label class="btn" for="pct3">Netotulu</label>
+        </div>
+        <div id="household-note" class="info p-1 mt-2 d-none"></div>
+
+        <div class="row box pt-2 pl-1 calc-head-row">
+          <div class="col">
+            <h3 class="calculators">Näitaja</h3>
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <h5 class="calculators">Senise korra järgi</h5>
+          </div>
+          <div class="col-sm-3 padding-2px R d-none d-sm-block">
+            <h5>Kodanikupalgaga
+              <span id="ubi_header"></span>
+            </h5>
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1 font-weight-bold">
+          <input type="hidden" id="wagefund" value="">
+          <input type="hidden" id="wagefund_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Tööandja kulu kokku (palgafond):
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="wagefund_std"></span>
+            (<span id="wagefund_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="wagefund_ubi"></span>
+            (<span id="wagefund_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1">
+          <input type="hidden" id="socialtax" value="">
+          <input type="hidden" id="socialtax_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Sotsiaalmaks: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="socialtax_std"></span> (<span id="socialtax_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="socialtax_ubi"></span> (<span id="socialtax_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1">
+          <input type="hidden" id="ui_employer" value="">
+          <input type="hidden" id="ui_employer_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Töötuskindlustusmakse (tööandja): </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="ui_employer_std"></span> (<span id="ui_employer_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="ui_employer_ubi"></span> (<span id="ui_employer_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1 font-weight-bold">
+          <input type="hidden" id="grosswage" value="">
+          <input type="hidden" id="grosswage_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Brutopalk:
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="grosswage_std"></span> (<span id="grosswage_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="grosswage_ubi"></span> (<span id="grosswage_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1">
+          <input type="hidden" id="fpp_1" value="">
+          <input type="hidden" id="fpp_1_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Kogumispension (II sammas): </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="fpp_1_std"></span> (<span id="fpp_1_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="fpp_1_ubi"></span> (<span id="fpp_1_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1">
+          <input type="hidden" id="ui_employee" value="0.00">
+          <input type="hidden" id="ui_employee_pct" value="0.00">
+          <div class="col-12 col-sm-6 padding-2px">Töötuskindlustusmakse (töötaja): </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="ui_employee_std">0.00</span> (<span id="ui_employee_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="ui_employee_ubi"></span> (<span id="ui_employee_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1" id="incometax1">
+          <input type="hidden" id="incometax" value="">
+          <input type="hidden" id="incometax_pct" value="6">
+          <div class="col-12 col-sm-6 padding-2px">Tulumaks: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="incometax_std"></span> (<span id="incometax_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="incometax_ubi"></span> (<span id="incometax_pct_ubi"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1" id="cohesiontax">
+          <div class="col-12 col-sm-6 padding-2px">Variant 1 - ühtekuuluvusmaks: <input
+              style="float:right; margin:10px 0 0 0;" type="radio" id="taxscenario" name="taxscenario" value="1"
+              onchange="wageCalc();" onclick="wageCalc();" onkeyup="wageCalc();" checked="checked"></div>
+          <div class="col-6 col-sm-3 padding-2px R">
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="ubicontrib"></span> (<span id="ubicontrib_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1 text-muted font-weight-light" id="incometax2">
+          <div class="col-12 col-sm-6 padding-2px">Variant 2 - üks ja ainus tulumaks: <input
+              style="float:right; margin:10px 0 0 0;" type="radio" id="taxscenario" name="taxscenario" value="2"
+              onchange="wageCalc();" onclick="wageCalc();" onkeyup="wageCalc();"></div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="incometax_std_2"></span> (<span id="incometax_pct_std_2"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="flatincometax"></span> (<span id="flatincometax_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1">
+          <div class="col-12 col-sm-6 padding-2px">Neto tööandjalt:
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="netwage"></span> (<span id="netwage_pct"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="worknetwage"></span> (<span id="worknetwage_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1 font-weight-bold">
+          <div class="col-12 col-sm-6 padding-2px">Netotulu kokku: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="netwage_std"></span> (<span id="netwage_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="totalnet"></span> (<span id="totalnet_pct"></span>%) <span id="diff"></span>
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1">
+          <div class="col-12 col-sm-6 padding-2px">Brutomaksukoormus: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="grosstax_std"></span> (<span id="grosstax_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="grosstax"></span> (<span id="grosstax_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1">
+          <div class="col-12 col-sm-6 padding-2px">Riigilt tagasi (kodanikupalk<span id="ubi_label_extra" class="d-none"> ja senise korra järgi lastetoetused</span>): </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="ubi_std"></span> (<span id="ubi_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="ubi"></span> (<span id="ubi_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1 font-weight-bold">
+          <div class="col-12 col-sm-6 padding-2px">Tegelik (neto) maksukoormus: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="taxburden_std"></span> (<span id="taxburden_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="taxburden"></span> (<span id="taxburden_pct"></span>%)
+          </div>
+        </div>
+
+
+        <br>
+        <input type="hidden" id="taxes" value="">
+        <input type="hidden" id="localtaxes" value="">
+        <input type="hidden" id="pension" value="">
+        <input type="hidden" id="taxes_ubi" value="">
+        <input type="hidden" id="localtaxes_ubi" value="">
+        <input type="hidden" id="pension_ubi" value="">
+        <input type="hidden" id="ubiamount" value="">
+        <input type="hidden" id="workernet" value="">
+        <input type="hidden" id="netwage_chart" value="">
+      </div>
+      <!--Div that will hold the pie chart-->
+      <div><br></div>
+      <div class="row">
+        <div class="col-sm-12">
+          <h3>Maksutulude jaotumine</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6">
+          <h3>Praegu kehtiva korra järgi: brutopalk <span id="grosswage-chart-std">2126.00</span></h3>
+          <h4>Tööjõukulude kogu ulatuses, st hõlmab ka töötasule lisanduvat sotsiaalmaksu</h4>
+        </div>
+        <div class="col-sm-6">
+          <h3>Kui kodanikupalk kehtiks praegu: kodanikupalk <span id="ubi-chart">517</span>, brutopalk <span
+              id="grosswage-chart"></span> eurot</h3>
+          <p>Kodanikupalk ja tööandjalt saadud netotulu on siin kokku liidetud. Riigipoolne lisa tuuakse eraldi
+            esile siis, kui kodanikupalk ületab maksude summa.</p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6">
+            <div class="text-center chart" id="chart_div"></div>
+        </div>
+        <div class="col-sm-6">
+          <div class="text-center chart" id="chart_div_ubi">
+          </div>
+        </div>
+      </div>
+
+
+    <script>initGrossWageFields();</script>
+
+    <script>
+      jQuery(function () {
+        jQuery('[data-toggle="popover"]').popover()
+      })
+      $('body').on('click vclick', function (e) {
+      });
+    </script>
+
+<div class="calc-container">
+</div>
+<style>
+  .vordle-side {
+    background-color: #1d5bbf;
+    padding: 5px 5px;
+    color: white;
+    border-bottom: 2px solid #0c9;
+    vertical-align: text-bottom !important;
+    position: relative;
+  }
+
+  .vordlelogo {
+    height: 28px;
+    width: 84px
+  }
+
+  .vordlelink,
+  .vordleside,
+  .vordle-head {
+    text-decoration: none !important;
+    color: white !important
+  }
+
+  .vordleside i {
+    color: #00e6ac
+  }
+
+  .vordleside {
+    display: inline-block;
+    background-color: #1d5bbf;
+    margin: 5px 5px 0 0;
+    padding: 7px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+  }
+
+  .vordle-head:hover,
+  .vordleside:hover {
+    text-decoration: underline !important
+  }
+
+  div.vordlelogo,
+  .vlogo {
+    display: inline-block
+  }
+
+  .vlogo-side {
+    display: inline-block;
+  }
+
+  .vordle-desc {
+    padding-top: 10px;
+    text-decoration: none !important;
+    color: white !important;
+    line-height: 0;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+  }
+
+  .vordlelinks_side {
+    display: inline-block;
+    padding: 0 5px 0 0;
+    margin: 5px 0 5px 5px;
+  }
+
+  .vordlelinks_side span {
+    margin-right: 15px
+  }
+
+  .vordle-head {
+    margin: 0 10px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 15px
+  }
+</style>
+
+<div class="c" style="widh:80%">
+</div>
+<script>document.addEventListener('DOMContentLoaded', clickDefaultInputMode);</script>
+
+<!-- Kolmanda mooduli lõpp -->
+
+<?php }?>
+
+
+<?php
+$app = JFactory::getApplication();
+$input = $app->input;
+$fabv = $input->get('view');
+if ($fabv == 'details')
+{
+  ?>
+    <script>document.addEventListener('DOMContentLoaded', initializeCalculator);</script>
+
+  <!-- Põhjamooduli lõpp -->
+<?php }?>

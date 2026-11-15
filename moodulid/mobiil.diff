@@ -1,0 +1,758 @@
+--- a/kalkulaator-uus.phtml
++++ b/kalkulaator-uus.phtml
+@@ -435,7 +435,7 @@
+         </div>
+ 
+         <div class="row">
+-          <div class="col-6">
++          <div class="col-12 col-sm-6">
+             <input class="css-radio disabled visually-hidden" type="radio" id="F1" name="tfx" value="1"
+               onkeyup="outputCalc();drawChart();disable();displayAlert();"
+               onclick="outputCalc();drawChart();disable(); displayAlert();" checked="checked"
+@@ -466,7 +466,7 @@
+               </span>
+             </span>
+           </div>
+-          <div class="col-6">
++          <div class="col-12 col-sm-6">
+             <span>
+               <input class="css-radio disabled visually-hidden" disabled="disabled" type="radio" id="F2" name="tfx"
+                 value="2" onclick="outputCalc();drawChart();disable();displayAlert();" style="display: inline">
+@@ -529,7 +529,7 @@
+         </div>
+         <div id="household-note" class="info p-1 mt-2 d-none"></div>
+ 
+-        <div class="row box pt-2 pl-1">
++        <div class="row box pt-2 pl-1 calc-head-row">
+           <div class="col">
+             <h3 class="calculators">Näitaja</h3>
+           </div>
+@@ -545,13 +545,15 @@
+         <div class="row box pt-2 pl-1 font-weight-bold">
+           <input type="hidden" id="wagefund" value="">
+           <input type="hidden" id="wagefund_pct" value="">
+-          <div class="col-6 padding-2px">Tööandja kulu kokku (palgafond):
++          <div class="col-12 col-sm-6 padding-2px">Tööandja kulu kokku (palgafond):
+           </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="wagefund_std"></span>
+             (<span id="wagefund_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-2px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="wagefund_ubi"></span>
+             (<span id="wagefund_pct_ubi"></span>%)
+           </div>
+@@ -559,141 +561,166 @@
+         <div class="row box pt-2 pl-1">
+           <input type="hidden" id="socialtax" value="">
+           <input type="hidden" id="socialtax_pct" value="">
+-          <div class="col-6 padding-2px">Sotsiaalmaks: </div>
++          <div class="col-12 col-sm-6 padding-2px">Sotsiaalmaks: </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="socialtax_std"></span> (<span id="socialtax_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-R24px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-R24px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="socialtax_ubi"></span> (<span id="socialtax_pct_ubi"></span>%)
+           </div>
+         </div>
+         <div class="row box pt-2 pl-1">
+           <input type="hidden" id="ui_employer" value="">
+           <input type="hidden" id="ui_employer_pct" value="">
+-          <div class="col-6 padding-2px">Töötuskindlustusmakse (tööandja): </div>
++          <div class="col-12 col-sm-6 padding-2px">Töötuskindlustusmakse (tööandja): </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="ui_employer_std"></span> (<span id="ui_employer_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-R24px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-R24px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="ui_employer_ubi"></span> (<span id="ui_employer_pct_ubi"></span>%)
+           </div>
+         </div>
+         <div class="row box pt-2 pl-1 font-weight-bold">
+           <input type="hidden" id="grosswage" value="">
+           <input type="hidden" id="grosswage_pct" value="">
+-          <div class="col-6 padding-2px">Brutopalk:
++          <div class="col-12 col-sm-6 padding-2px">Brutopalk:
+           </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="grosswage_std"></span> (<span id="grosswage_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-2px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="grosswage_ubi"></span> (<span id="grosswage_pct_ubi"></span>%)
+           </div>
+         </div>
+         <div class="row box pt-2 pl-1">
+           <input type="hidden" id="fpp_1" value="">
+           <input type="hidden" id="fpp_1_pct" value="">
+-          <div class="col-6 padding-2px">Kogumispension (II sammas): </div>
++          <div class="col-12 col-sm-6 padding-2px">Kogumispension (II sammas): </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="fpp_1_std"></span> (<span id="fpp_1_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-R24px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-R24px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="fpp_1_ubi"></span> (<span id="fpp_1_pct_ubi"></span>%)
+           </div>
+         </div>
+         <div class="row box pt-2 pl-1">
+           <input type="hidden" id="ui_employee" value="0.00">
+           <input type="hidden" id="ui_employee_pct" value="0.00">
+-          <div class="col-6 padding-2px">Töötuskindlustusmakse (töötaja): </div>
++          <div class="col-12 col-sm-6 padding-2px">Töötuskindlustusmakse (töötaja): </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="ui_employee_std">0.00</span> (<span id="ui_employee_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-R24px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-R24px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="ui_employee_ubi"></span> (<span id="ui_employee_pct_ubi"></span>%)
+           </div>
+         </div>
+         <div class="row box pt-2 pl-1" id="incometax1">
+           <input type="hidden" id="incometax" value="">
+           <input type="hidden" id="incometax_pct" value="6">
+-          <div class="col-6 padding-2px">Tulumaks: </div>
++          <div class="col-12 col-sm-6 padding-2px">Tulumaks: </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="incometax_std"></span> (<span id="incometax_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-R24px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-R24px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="incometax_ubi"></span> (<span id="incometax_pct_ubi"></span>%)
+           </div>
+         </div>
+ 
+         <div class="row box pt-2 pl-1" id="cohesiontax">
+-          <div class="col-6 padding-2px">Variant 1 - ühtekuuluvusmaks: <input
++          <div class="col-12 col-sm-6 padding-2px">Variant 1 - ühtekuuluvusmaks: <input
+               style="float:right; margin:10px 0 0 0;" type="radio" id="taxscenario" name="taxscenario" value="1"
+               onchange="wageCalc();" onclick="wageCalc();" onkeyup="wageCalc();" checked="checked"></div>
+           <div class="col-6 col-sm-3 padding-2px R">
+           </div>
+-          <div class="col-sm-3 padding-R24px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-R24px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="ubicontrib"></span> (<span id="ubicontrib_pct"></span>%)
+           </div>
+         </div>
+ 
+         <div class="row box pt-2 pl-1 text-muted font-weight-light" id="incometax2">
+-          <div class="col-6 padding-2px">Variant 2 - üks ja ainus tulumaks: <input
++          <div class="col-12 col-sm-6 padding-2px">Variant 2 - üks ja ainus tulumaks: <input
+               style="float:right; margin:10px 0 0 0;" type="radio" id="taxscenario" name="taxscenario" value="2"
+               onchange="wageCalc();" onclick="wageCalc();" onkeyup="wageCalc();"></div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="incometax_std_2"></span> (<span id="incometax_pct_std_2"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-R24px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-R24px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="flatincometax"></span> (<span id="flatincometax_pct"></span>%)
+           </div>
+         </div>
+ 
+         <div class="row box pt-2 pl-1">
+-          <div class="col-6 padding-2px">Neto tööandjalt:
++          <div class="col-12 col-sm-6 padding-2px">Neto tööandjalt:
+           </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="netwage"></span> (<span id="netwage_pct"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-2px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="worknetwage"></span> (<span id="worknetwage_pct"></span>%)
+           </div>
+         </div>
+ 
+         <div class="row box pt-2 pl-1 font-weight-bold">
+-          <div class="col-6 padding-2px">Netotulu kokku: </div>
++          <div class="col-12 col-sm-6 padding-2px">Netotulu kokku: </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="netwage_std"></span> (<span id="netwage_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-2px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="totalnet"></span> (<span id="totalnet_pct"></span>%) <span id="diff"></span>
+           </div>
+         </div>
+ 
+         <div class="row box pt-2 pl-1">
+-          <div class="col-6 padding-2px">Brutomaksukoormus: </div>
++          <div class="col-12 col-sm-6 padding-2px">Brutomaksukoormus: </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="grosstax_std"></span> (<span id="grosstax_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-2px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="grosstax"></span> (<span id="grosstax_pct"></span>%)
+           </div>
+         </div>
+ 
+         <div class="row box pt-2 pl-1">
+-          <div class="col-6 padding-2px">Riigilt tagasi (kodanikupalk<span id="ubi_label_extra" class="d-none"> ja senise korra järgi lastetoetused</span>): </div>
++          <div class="col-12 col-sm-6 padding-2px">Riigilt tagasi (kodanikupalk<span id="ubi_label_extra" class="d-none"> ja senise korra järgi lastetoetused</span>): </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="ubi_std"></span> (<span id="ubi_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-2px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="ubi"></span> (<span id="ubi_pct"></span>%)
+           </div>
+         </div>
+ 
+         <div class="row box pt-2 pl-1 font-weight-bold">
+-          <div class="col-6 padding-2px">Tegelik (neto) maksukoormus: </div>
++          <div class="col-12 col-sm-6 padding-2px">Tegelik (neto) maksukoormus: </div>
+           <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Senise korra järgi</span>
+             <span id="taxburden_std"></span> (<span id="taxburden_pct_std"></span>%)
+           </div>
+-          <div class="col-sm-3 padding-2px R d-none d-sm-block">
++          <div class="col-6 col-sm-3 padding-2px R">
++            <span class="calc-cap">Kodanikupalgaga</span>
+             <span id="taxburden"></span> (<span id="taxburden_pct"></span>%)
+           </div>
+         </div>
+--- a/templates/cassiopeia_kalkulaator/index.php
++++ b/templates/cassiopeia_kalkulaator/index.php
+@@ -90,6 +90,16 @@
+ 		$fontStyles
+ 	}");
+ 
++// Kalkulaatori kitsa vaate (mobiili) abiskript: vahelehed, lähteandmete ja kärbete peitmise nupud,
++// diagrammide suurus. Versiooniks faili muutmisaeg, et brauser toob muudetud faili kohe uuesti.
++$calcMobileJs = '/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js';
++$wa->registerAndUseScript(
++    'template.calc-mobile',
++    Uri::root(true) . $calcMobileJs,
++    ['version' => (string) (@filemtime(JPATH_ROOT . $calcMobileJs) ?: 'auto')],
++    ['defer' => true]
++);
++
+ // Override 'template.active' asset to set correct ltr/rtl dependency
+ $wa->registerStyle('template.active', '', [], [], ['template.cassiopeia.' . ($this->direction === 'rtl' ? 'rtl' : 'ltr')]);
+ 
+@@ -192,14 +202,28 @@
+             </div>
+   </div>
+         <?php endif; ?>
+-  <div class="container">
++  <?php
++    // Kaks veergu: lähteandmed (komponent) ja kalkulaatorimoodulid (positsioon "calc").
++    // Arvutivaates (alates lg, 992 px) nagu varem: kõrvuti, 5 + 7 veergu.
++    // Kitsas vaates (alla lg) saavad veergudest vahelehed (vt css/user.css ja js/calc-mobile.js).
++    // Algselt avatud vaheleht: kalkulaator, kui on avatud aasta lähteandmed (details); muidu lähteandmed.
++    $hasCalc  = $this->countModules('calc', true);
++    $calcPane = ($hasCalc && $view === 'details') ? 'calc' : 'data';
++  ?>
++  <div class="container calc-layout" data-calc-pane="<?php echo $calcPane; ?>">
++    <?php if ($hasCalc) : ?>
++        <div class="calc-tabs" role="tablist" aria-label="Kalkulaator ja lähteandmed">
++            <button type="button" class="calc-tab" role="tab" id="calc-tab-calc" aria-controls="calc-pane-calc" aria-selected="<?php echo $calcPane === 'calc' ? 'true' : 'false'; ?>" data-calc-tab="calc">Kalkulaator</button>
++            <button type="button" class="calc-tab" role="tab" id="calc-tab-data" aria-controls="calc-pane-data" aria-selected="<?php echo $calcPane === 'data' ? 'true' : 'false'; ?>" data-calc-tab="data">Lähteandmed</button>
++        </div>
++    <?php endif; ?>
+     <div class="row">
+-      <div class="col col-5">
++      <div class="col-12 col-lg-5 calc-pane calc-pane-data" id="calc-pane-data">
+         <jdoc:include type="modules" name="main-top" style="card" />
+         <jdoc:include type="component" />
+       </div>
+-        <?php if ($this->countModules('calc', true)) : ?>
+-            <div class="col col-7">
++        <?php if ($hasCalc) : ?>
++            <div class="col-12 col-lg-7 calc-pane calc-pane-calc" id="calc-pane-calc">
+                 <jdoc:include type="modules" name="calc" style="card" />
+             </div>
+         <?php endif; ?>
+--- a/media/templates/site/cassiopeia_kalkulaator/css/user.css
++++ b/media/templates/site/cassiopeia_kalkulaator/css/user.css
+@@ -107,4 +107,150 @@
+ }
+ .sticky-top{
+   z-index:920;
+-}
+\ No newline at end of file
++}
++
++/* ==========================================================================
++   KALKULAATORI MOBIILIVAADE
++   Kitsas vaates (alla 992 px) saavad kaks veergu (lähteandmed ja kalkulaator)
++   vahelehed. Arvutivaade (alates 992 px) jääb samaks.
++   Seotud: index.php (märgend .calc-layout, .calc-tabs, .calc-pane-*),
++   js/calc-mobile.js (vahelehtede ja peitmisnuppude loogika) ja
++   kalkulaator-uus.phtml (tulemustabeli veerud).
++   Kitsa vaate piir (991.98px = Bootstrapi lg) on kirjas ainult ühes kohas:
++   allpool plokis "@media (max-width: 991.98px)". JS loeb piiri muutujast
++   --calc-narrow, seega piiri muutmisel piisab selle ühe plokiga.
++   ========================================================================== */
++
++/* JS loeb sellest, kas vaade on kitsas (0 = arvutivaade, 1 = kitsas vaade) */
++.calc-layout { --calc-narrow: 0; }
++
++/* Vahelehtede riba: arvutivaates alati peidus; kitsas vaates ilmub alles siis,
++   kui calc-mobile.js on käivitunud (.calc-js). Ilma JS-ita jäävad veerud lihtsalt üksteise alla. */
++.calc-tabs { display: none; }
++
++.calc-tab {
++  flex: 1 1 0;
++  padding: .6rem .75rem;
++  font: inherit;
++  font-weight: 600;
++  line-height: 1.2;
++  color: var(--cassiopeia-color-link, #144365);
++  background: #fff;
++  border: 2px solid var(--cassiopeia-color-link, #144365);
++  border-radius: .375rem;
++  cursor: pointer;
++}
++.calc-tab[aria-selected="true"] {
++  color: #fff;
++  background: var(--cassiopeia-color-link, #144365);
++}
++.calc-tab:focus-visible,
++.calc-toggle:focus-visible {
++  outline: 3px solid #f7cb2b;
++  outline-offset: 2px;
++}
++
++@media (max-width: 991.98px) {
++  .calc-layout { --calc-narrow: 1; }
++
++  .calc-layout.calc-js .calc-tabs {
++    display: flex;
++    gap: .5rem;
++    margin: .75rem 0 .5rem;
++    scroll-margin-top: 5rem;          /* kleepuva menüü all */
++  }
++  /* Ainult valitud vaheleht on nähtav (display:none tõstab ka fookusjärjekorrast välja) */
++  .calc-layout.calc-js[data-calc-pane="calc"] > .row > .calc-pane-data,
++  .calc-layout.calc-js[data-calc-pane="data"] > .row > .calc-pane-calc {
++    display: none;
++  }
++
++  /* Päisemooduli kaart on arvutivaates kleepuv (sticky-top); kitsas vaates võtaks see pool ekraani */
++  .calc-layout .card.position-sticky {
++    position: static !important;
++  }
++  .calc-layout .card-body {
++    padding: .75rem;
++  }
++
++  /* Hüpikmenüü-sarnased nupugrupid (aasta, sisendi liik, aluse valik) murduvad uuele reale */
++  .calc-pane-calc .btn-group.radio {
++    flex-wrap: wrap;
++    max-width: 100%;
++  }
++
++  /* Diagramm ja laiad tabelid (nt "Kahelapselise pere netosissetulek") ei tohi lehte laiendada */
++  .calc-pane-calc .chart {
++    max-width: 100%;
++    overflow-x: auto;
++  }
++  .calc-pane-calc .card-body table:not(.table-calc) {
++    display: block;
++    max-width: 100%;
++    overflow-x: auto;
++  }
++}
++
++/* Lähteandmete ja kärbete peitmise/näitamise nupud (loob calc-mobile.js kitsas vaates) */
++.calc-toggles {
++  display: flex;
++  flex-wrap: wrap;
++  gap: .5rem;
++  margin: .25rem 0 1rem;
++}
++.calc-toggle {
++  flex: 1 1 12rem;
++  position: relative;
++  padding-right: 2rem;
++  text-align: left;
++}
++.calc-toggle::after {
++  content: "\25BE";                   /* ▾ */
++  position: absolute;
++  right: .75rem;
++  top: 50%;
++  transform: translateY(-50%);
++}
++.calc-toggle[aria-expanded="true"]::after {
++  content: "\25B4";                   /* ▴ */
++}
++
++/* Tulemustabeli väikesed pealkirjad igas lahtris: nähtavad ainult telefoni laiusel (alla 576 px),
++   sest seal on iga rida kolmel real (nimetus, siis kaks väärtust kõrvuti) ja tulemustabeli
++   pealkirjarida on peidus. */
++.calc-cap { display: none; }
++
++@media (max-width: 575.98px) {
++  .calc-cap {
++    display: block;
++    font-size: .75rem;
++    line-height: 1.2;
++    font-weight: 400;
++    color: #6c757d;
++  }
++  .calc-head-row { display: none; }
++
++  /* Pealkirjad: päise h2 on HTML-is inline-stiiliga 1.55em, seepärast !important */
++  .calc-pane-calc h2 { font-size: 1.3rem !important; }
++  .calc-pane-calc h3 { font-size: 1.15rem; }
++  .calc-pane-calc h4 { font-size: 1.05rem; }
++  .calc-pane-calc .card-body h1 { font-size: 1.5rem; }
++
++  /* Aastanupud (btn-lg) väiksemaks, et mahuks kahele reale */
++  .calc-pane-calc #display-years .btn {
++    padding: .35rem .6rem;
++    font-size: 1rem;
++  }
++
++  /* Lähteandmed: kaks lahtrit reas (Fabrik annab col-sm-4, st telefonil üks lahter rea kohta) */
++  .calc-pane-data .fabrikGroup .row > .fabrikElementContainer.col-sm-4 {
++    width: 50%;
++  }
++  .calc-pane-data .fabrikGroup .row .fabrikElementReadOnly {
++    overflow-wrap: anywhere;          /* pikad sõned lähteandmete ruudustikus; tabelis mitte */
++  }
++  /* Kärbete tabelis ei tohi summa (nt 407822077.08) kahele reale murduda */
++  .calc-pane-data .repeatGroupTable [class*="___value_eur"] {
++    white-space: nowrap;
++  }
++}
+--- /dev/null
++++ b/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js
+@@ -0,0 +1,308 @@
++/* ============================================================================
++ * calc-mobile.js
++ * Kodanikupalga kalkulaatori kitsa vaate (mobiili) abiskript.
++ * Laeb mall cassiopeia_kalkulaator (index.php, registreeritud $wa->registerAndUseScript).
++ *
++ * Mida teeb (ainult kitsas vaates, st kui .calc-layout muutuja --calc-narrow on 1;
++ * piir on kirjas css/user.css-is):
++ *   1. Vahelehed: veerud .calc-pane-calc (kalkulaator) ja .calc-pane-data (lähteandmed)
++ *      muutuvad vahelehtedeks. Vahelehtede nupud tegi index.php.
++ *   2. Lähteandmete ja kärbete valiku peitmise/näitamise nupud (genereeritakse siin).
++ *      Peidetakse klassiga "visually-hidden" (+ atribuut "inert", vt CONFIG): elemendid ja
++ *      nende väärtused jäävad DOM-i alles ja kalkulaatori JS loeb neid nagu enne.
++ *      Midagi ei eemaldata ega tõsteta ümber, ID-d jäävad samaks.
++ *   3. Sektordiagrammid: kitsas vaates joonistatakse need ekraani laiuse järgi
++ *      (kalkulaatori drawPieChart on fikseeritud 360 x 240 px, legend paremal).
++ *
++ * Arvutivaates (--calc-narrow = 0) ei tee skript midagi: lehe välimus ja käitumine on nagu enne.
++ * Ilma JS-ita jäävad veerud kitsas vaates lihtsalt üksteise alla.
++ * ========================================================================= */
++(function () {
++  "use strict";
++
++  /* -------------------------------------------------------------------------
++   * SEADED: muuda siin
++   * ----------------------------------------------------------------------- */
++  var CONFIG = {
++    // Lähteandmete grupid (Fabriku fieldset'id): peidetakse nupuga "Näita alusandmeid".
++    // Lisa siia id, kui lähteandmetesse tuleb uus grupp.
++    baseDataSelectors: ["#group161", "#group210", "#group164", "#group205", "#group207"],
++
++    // Kärpekohtade valik (intro, lisasumma väli ja tabel): nupp "Näita kärpevõimalusi"
++    cutsSelectors: ["#group162"],
++
++    // Kas grupp on kitsas vaates lehe avamisel peidus (true) või nähtav (false).
++    // false = kasutaja saab kärpeid/sihtrühmi muuta kohe ja peidab ise.
++    startCollapsed: { base: true, cuts: true },
++
++    // Peidetud grupile lisatakse ka atribuut "inert": klaviatuur (Tab) ei sattu nähtamatutele
++    // märkeruutudele. Väärtused jäävad loetavaks (.value, .checked, .innerHTML).
++    // Kui tahad, et ekraanilugeja loeks peidetud grupi sisu ka kokku volditult, pane false.
++    inertWhenCollapsed: true,
++
++    labels: {
++      base: { show: "Näita alusandmeid", hide: "Peida alusandmed" },
++      cuts: { show: "Näita kärpevõimalusi", hide: "Peida kärpevõimalused" }
++    },
++
++    // Sektordiagrammid kitsas vaates (px)
++    chart: { height: 320, minWidth: 240, fallbackWidth: 300 }
++  };
++
++  var HIDE_CLASS = "visually-hidden"; // sama klass, mida kalkulaatori päis juba kasutab (PEIDA/NÄITA)
++
++  var layout = null;
++  var tabs = [];
++  var panes = {};
++  var lastNarrow = null;
++  var toggleBar = null;
++  var collapsed = { base: CONFIG.startCollapsed.base, cuts: CONFIG.startCollapsed.cuts };
++  var groups = { base: [], cuts: [] };
++
++  /* -------------------------------------------------------------------------
++   * Abifunktsioonid
++   * ----------------------------------------------------------------------- */
++  function isNarrow() {
++    // Kitsa vaate piir on CSS-is (muutuja --calc-narrow), et see oleks ühes kohas
++    return getComputedStyle(layout).getPropertyValue("--calc-narrow").trim() === "1";
++  }
++
++  function findAll(selectors) {
++    var found = [];
++    selectors.forEach(function (selector) {
++      Array.prototype.forEach.call(layout.querySelectorAll(selector), function (el) {
++        if (found.indexOf(el) === -1) found.push(el);
++      });
++    });
++    return found;
++  }
++
++  function redrawCharts() {
++    // Diagramm joonistatakse alles siis, kui kalkulaatori JS ja Google Charts on olemas
++    if (typeof window.drawChart !== "function") return;
++    try {
++      window.drawChart();
++    } catch (e) {
++      /* Google Charts pole veel laaditud: see joonistab ise, kui valmis saab */
++    }
++  }
++
++  /* -------------------------------------------------------------------------
++   * 1. Vahelehed
++   * ----------------------------------------------------------------------- */
++  function setPane(name, focusTab) {
++    if (!panes[name]) return;
++    layout.setAttribute("data-calc-pane", name);
++    tabs.forEach(function (tab) {
++      var active = tab.getAttribute("data-calc-tab") === name;
++      tab.setAttribute("aria-selected", active ? "true" : "false");
++      tab.tabIndex = active ? 0 : -1;
++      if (active && focusTab) tab.focus();
++    });
++    if (name === "calc") redrawCharts(); // peidetud veerus ei saanud diagramm õiget laiust
++  }
++
++  function currentPane() {
++    return layout.getAttribute("data-calc-pane") === "data" ? "data" : "calc";
++  }
++
++  function onTabKeydown(event) {
++    var index = tabs.indexOf(event.currentTarget);
++    var next = -1;
++    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % tabs.length;
++    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = (index - 1 + tabs.length) % tabs.length;
++    else if (event.key === "Home") next = 0;
++    else if (event.key === "End") next = tabs.length - 1;
++    if (next === -1) return;
++    event.preventDefault();
++    setPane(tabs[next].getAttribute("data-calc-tab"), true);
++  }
++
++  function initTabs() {
++    tabs = Array.prototype.slice.call(layout.querySelectorAll("[data-calc-tab]"));
++    panes.calc = layout.querySelector(".calc-pane-calc");
++    panes.data = layout.querySelector(".calc-pane-data");
++    if (!tabs.length || !panes.calc || !panes.data) return false; // vahelehti pole (nt puuduvad calc moodulid)
++
++    tabs.forEach(function (tab) {
++      tab.addEventListener("click", function () {
++        setPane(tab.getAttribute("data-calc-tab"), false);
++        // Kui vahelehtede riba on lehe ülaosas ja kasutaja on allpool, too riba nähtavale
++        var top = layout.getBoundingClientRect().top;
++        if (top < 0) layout.scrollIntoView({ block: "start" });
++      });
++      tab.addEventListener("keydown", onTabKeydown);
++    });
++    return true;
++  }
++
++  // Vahelehtede ARIA-rollid on ainult kitsas vaates (arvutivaates on mõlemad veerud korraga nähtavad)
++  function applyTabSemantics(on) {
++    if (!tabs.length) return;
++    ["calc", "data"].forEach(function (name) {
++      var pane = panes[name];
++      if (on) {
++        pane.setAttribute("role", "tabpanel");
++        pane.setAttribute("aria-labelledby", "calc-tab-" + name);
++      } else {
++        pane.removeAttribute("role");
++        pane.removeAttribute("aria-labelledby");
++      }
++    });
++    if (on) setPane(currentPane(), false);
++  }
++
++  /* -------------------------------------------------------------------------
++   * 2. Peitmise/näitamise nupud
++   * ----------------------------------------------------------------------- */
++  function setCollapsed(kind, hide) {
++    collapsed[kind] = hide;
++    groups[kind].forEach(function (el) {
++      el.classList.toggle(HIDE_CLASS, hide);
++      if (CONFIG.inertWhenCollapsed) {
++        if (hide) el.setAttribute("inert", "");
++        else el.removeAttribute("inert");
++      }
++      el.setAttribute("data-calc-collapsible", "1"); // märgib, et klassi lisasime meie
++    });
++    var button = toggleBar && toggleBar.querySelector('[data-calc-toggle="' + kind + '"]');
++    if (button) {
++      button.setAttribute("aria-expanded", hide ? "false" : "true");
++      button.textContent = hide ? CONFIG.labels[kind].show : CONFIG.labels[kind].hide;
++    }
++  }
++
++  function makeToggleButton(kind) {
++    var button = document.createElement("button");
++    button.type = "button";
++    button.className = "btn btn-outline-dark calc-toggle";
++    button.setAttribute("data-calc-toggle", kind);
++    var ids = groups[kind]
++      .map(function (el) { return el.id; })
++      .filter(Boolean)
++      .join(" ");
++    if (ids) button.setAttribute("aria-controls", ids);
++    button.addEventListener("click", function () {
++      setCollapsed(kind, !collapsed[kind]);
++    });
++    return button;
++  }
++
++  function buildToggles() {
++    if (toggleBar) return;
++    groups.base = findAll(CONFIG.baseDataSelectors);
++    groups.cuts = findAll(CONFIG.cutsSelectors);
++    var all = groups.base.concat(groups.cuts);
++    if (!all.length) return; // lehel pole lähteandmeid (nt aastate nimekiri)
++
++    // Nupuriba läheb esimese peidetava grupi ette (dokumendi järjekorras)
++    all.sort(function (a, b) {
++      return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
++    });
++    toggleBar = document.createElement("div");
++    toggleBar.className = "calc-toggles";
++    toggleBar.setAttribute("data-calc-generated", "1");
++    ["base", "cuts"].forEach(function (kind) {
++      if (groups[kind].length) toggleBar.appendChild(makeToggleButton(kind));
++    });
++    all[0].parentNode.insertBefore(toggleBar, all[0]);
++
++    setCollapsed("base", collapsed.base);
++    setCollapsed("cuts", collapsed.cuts);
++  }
++
++  // Arvutivaatesse tagasi: nupud ära, kõik grupid nähtavaks (nagu enne)
++  function removeToggles() {
++    if (toggleBar && toggleBar.parentNode) toggleBar.parentNode.removeChild(toggleBar);
++    toggleBar = null;
++    groups.base.concat(groups.cuts).forEach(function (el) {
++      if (el.getAttribute("data-calc-collapsible") !== "1") return;
++      el.classList.remove(HIDE_CLASS);
++      el.removeAttribute("inert");
++      el.removeAttribute("data-calc-collapsible");
++    });
++  }
++
++  /* -------------------------------------------------------------------------
++   * 3. Sektordiagrammid kitsas vaates
++   *    Kalkulaatori drawPieChart (ubiTaxCalcCompare.js) joonistab alati 360 x 240 px ja legend
++   *    on paremal; telefoni laiusele see ei mahu. Siin asendame selle funktsiooni nii, et
++   *    arvutivaates kutsutakse originaali (muutmata) ja kitsas vaates joonistatakse
++   *    konteineri laiuse järgi, legend all. Ülejäänud valikud on samad.
++   *    Kui tahad, võid kitsa vaate valikud tõsta otse ubiTaxCalcCompare.js-i drawPieChart'i.
++   * ----------------------------------------------------------------------- */
++  function installChartOverride() {
++    var original = window.drawPieChart;
++    if (typeof original !== "function" || original.calcMobilePatched) return;
++
++    var patched = function (containerId, rows, colors) {
++      if (!isNarrow() || typeof google === "undefined" || !google.visualization) {
++        return original.apply(this, arguments);
++      }
++      var box = document.getElementById(containerId);
++      var data = new google.visualization.DataTable();
++      data.addColumn("string", "Topping");
++      data.addColumn("number", "Slices");
++      data.addRows(rows);
++
++      var width = Math.max(CONFIG.chart.minWidth, box.clientWidth || CONFIG.chart.fallbackWidth);
++      var chart = new google.visualization.PieChart(box);
++      chart.draw(data, {
++        width: width,
++        height: CONFIG.chart.height,
++        colors: colors,
++        backgroundColor: "#f5f7fa",
++        is3D: true,
++        legend: { position: "bottom", maxLines: 6, textStyle: { color: "#555555" } }
++      });
++    };
++    patched.calcMobilePatched = true;
++    window.drawPieChart = patched;
++  }
++
++  /* -------------------------------------------------------------------------
++   * Kitsa ja arvutivaate vahetus
++   * ----------------------------------------------------------------------- */
++  function enterNarrow() {
++    installChartOverride();
++    applyTabSemantics(true); // joonistab kalkulaatori vahelehe diagrammid uuesti, kui see on avatud
++    buildToggles();
++  }
++
++  function leaveNarrow() {
++    applyTabSemantics(false);
++    removeToggles();
++    redrawCharts(); // arvutivaates tagasi originaalmõõtudega diagrammid
++  }
++
++  function sync() {
++    var narrow = isNarrow();
++    if (narrow === lastNarrow) return;
++    var first = lastNarrow === null;
++    lastNarrow = narrow;
++    if (first && !narrow) return; // arvutivaates lehe avamisel ei tee midagi
++    if (narrow) enterNarrow();
++    else leaveNarrow();
++  }
++
++  function init() {
++    layout = document.querySelector(".calc-layout");
++    if (!layout) return;
++    initTabs();
++    layout.classList.add("calc-js"); // alles nüüd peidab CSS mitteaktiivse vahelehe
++
++    var pending = false;
++    window.addEventListener("resize", function () {
++      if (pending) return;
++      pending = true;
++      window.requestAnimationFrame(function () {
++        pending = false;
++        sync();
++      });
++    });
++    sync();
++  }
++
++  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
++  else init();
++})();
