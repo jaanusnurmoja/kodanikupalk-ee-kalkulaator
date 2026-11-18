@@ -1,0 +1,557 @@
+diff --git a/media/calculator/ubiTaxCalcCompare.js b/media/calculator/ubiTaxCalcCompare.js
+index fed8eeb..04bffee 100644
+--- a/media/calculator/ubiTaxCalcCompare.js
++++ b/media/calculator/ubiTaxCalcCompare.js
+@@ -14,6 +14,7 @@
+  *                     leibkonna vaade (2 täiskasvanut, lapsed) tulemustabelis
+  *   8. displayAlert, outputCalc
+  *   9. Diagrammid ja "sama suured kulud" lause
++ *  10. Leibkonna kuise sissetuleku diagramm (moodul "KalkulaatorV3M (4)"; kutsutakse wageCalc()-ist)
+  *
+  * HTML-i käsitlejad (onclick="outputCalc();..." jms) kutsuvad neid funktsioone
+  * nimepidi, seega kõik avalikud nimed on säilitatud.
+@@ -1498,7 +1499,11 @@ function wageCalc() {
+   calcGrossTaxAndBurden(c);
+   calcChartValues(c);
+   calcPercentages(c);
++  // Diagrammi mudel koostatakse enne leibkonna ülekirjutust (tabeli spanid on veel ühe täiskasvanu väärtused),
++  // joonistatakse pärast. Ilma moodulita (#family-chart puudub) on mudel null ja midagi ei toimu. Vt 10. osa.
++  var chartModel = buildFamilyChartModel(c);
+   applyHousehold(c);
++  renderFamilyChart(chartModel);
+ }
+ 
+ 
+@@ -1723,3 +1728,472 @@ function initializeCalculator() {
+   // Käivita kord lehe laadimisel (vajalik juhul, kui ubi-amount on juba seadistatud)
+   updateAdultAmount();
+ }
++
++
++/* ---------------------------------------------------------------------------
++ * 10. LEIBKONNA KUISE SISSETULEKU DIAGRAMM
++ *     (moodul "KalkulaatorV3M (4)" failis kalkulaator-uus.phtml; eeskujuks horisontaalsed virnatulbad)
++ *
++ *   Tulbad (kõik summad € kuus kogu leibkonna kohta), järjekorras ülevalt alla:
++ *     1. Tööandja kulud  = brutopalk + sotsiaalmaks (+ tööandja töötuskindlustus, kui valitud)
++ *     2. Brutopalk       = tööandjalt kättesaadav neto + mahaarvamised
++ *                          (variant 1: ühtekuuluvusmaks + tulumaks; variant 2: ühtlane tulumaks)
++ *     3. Neto: KdP <summa> €  = tööandjalt kättesaadav neto + vanemate ja laste kodanikupalk
++ *     4. Neto: <aasta>        = tööandjalt kättesaadav neto + senise korra järgi lastele makstav raha
++ *                               (lapsetoetus ja lasterikka pere toetus, vt CHILD_BENEFITS)
++ *   "Netotulu" sisendirežiimis (input_3) on brutopalk senise korra ja kodanikupalga korral erinev;
++ *   siis on tööandja kulude ja brutopalga tulbad mõlema variandi kohta eraldi (senine / KdP).
++ *
++ *   Seos arvutusega: wageCalc() kutsub buildFamilyChartModel(c) enne applyHousehold()-i (tulemustabeli
++ *   spanid on siis veel ühe täiskasvanu väärtused) ja renderFamilyChart(model) pärast seda.
++ *   Diagramm EI kirjuta ühtegi arvutuse välja ega muuda tulemustabelit; ta ainult loeb neid.
++ *   Kui lehel pole elementi #family-chart (moodulit pole lisatud), tagastab mudel null ja midagi ei juhtu.
++ *
++ *   Elemendid moodulis: #family-chart-legend, #family-chart-desc, #family-chart (SVG joonistatakse siia).
++ *   Kõik abifunktsioonid on kinnises plokis; globaalseks tehakse ainult kaks nime.
++ * ------------------------------------------------------------------------- */
++(function () {
++  "use strict";
++
++  // Lõigud: võti -> silt ja värv. Värvid emp/coh/tax/par/l36/l7/kid on samad mis eeskujul;
++  // dark = number lõigu sees valge (tume taust), muidu tume.
++  var SEGMENTS = {
++    gross: { label: "Brutopalk", color: "#4F6D88", dark: true },
++    social: { label: "Sotsiaalmaks", color: "#A64B4B", dark: true },
++    uiEr: { label: "Töötuskindlustus (tööandja)", color: "#9BBB59", dark: false },
++    emp: { label: "Tööandjalt kättesaadav", color: "#8CA3B8", dark: false },
++    uiEe: { label: "Töötuskindlustus (töötaja)", color: "#C3D69B", dark: false },
++    pens: { label: "Kogumispension (II sammas)", color: "#F79646", dark: false },
++    coh: { label: "Ühtekuuluvusmaks", color: "url(#fc-hatch)", dark: false },
++    tax: { label: "Tulumaks", color: "#FFC000", dark: false },
++    flat: { label: "Ühtlane tulumaks", color: "#FFC000", dark: false },
++    par: { label: "Vanemate kodanikupalk", color: "#31869B", dark: true },
++    l36: { label: "Lasterikka pere toetus (3–6 last)", color: "#8064A2", dark: true },
++    l7: { label: "Lasterikka pere toetus (7+ last)", color: "#5B4580", dark: true },
++    kid: { label: "Laps", color: "#A9D7E2", dark: false },
++  };
++  // Legendi ja lõikude järjekord
++  var SEGMENT_ORDER = ["gross", "social", "uiEr", "emp", "uiEe", "pens", "coh", "tax", "flat", "par", "l36", "l7", "kid"];
++  var HATCH_CSS = "repeating-linear-gradient(45deg,#FFC000 0 3px,#8CA3B8 3px 6px)";
++
++  // Joonise mõõdud (viewBox-i ühikutes). Lai paigutus (>= 500 px) ja kitsas paigutus (telefon, külgveerg):
++  // kitsas jagab tulba sildi kaheks reaks ja kasutab väiksemat viewBox-i, et kiri jääks loetavaks.
++  var LAYOUTS = {
++    wide: { name: "wide", labelWidth: 150, barWidth: 290, rightMargin: 60, barHeight: 24, barGap: 5, top: 10, fLabel: 13, fSeg: 12, fTotal: 15, fAxis: 12, wrap: 0, minSeg: 30 },
++    compact: { name: "compact", labelWidth: 104, barWidth: 200, rightMargin: 54, barHeight: 32, barGap: 6, top: 10, fLabel: 11, fSeg: 10.5, fTotal: 13, fAxis: 10.5, wrap: 17, minSeg: 26 },
++  };
++  var WIDE_MIN_PX = 500;
++
++  var lastSignature = "";
++  var lastModel = null;
++  var watching = false;
++
++  /* ----- väikesed abifunktsioonid ----- */
++  function el(id) {
++    return document.getElementById(id);
++  }
++
++  function toNum(v) {
++    v = parseFloat(v);
++    return isFinite(v) ? v : 0; // tühi / "NaN" -> 0
++  }
++
++  function fieldNum(id) {
++    var e = el(id);
++    return e === null ? 0 : toNum(e.value);
++  }
++
++  function spanNum(id) {
++    var e = el(id);
++    return e === null ? 0 : toNum(e.innerHTML);
++  }
++
++  function cents(v) {
++    return Math.round(v * 100) / 100;
++  }
++
++  function esc(s) {
++    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
++  }
++
++  // Täisarv tuhandete eraldajaga: 2 092
++  function fmt(v) {
++    return Math.round(v).toLocaleString("et-EE").replace(/[  ]/g, " ");
++  }
++
++  // Summa eesti kirjaviisis, ilma lõpu ,00-ta: 592,71 / 493
++  function plainAmount(v) {
++    return cents(v).toFixed(2).replace(/\.00$/, "").replace(".", ",");
++  }
++
++  // Eraldamatu tühik enne €-märki, et summa ei jääks ridade vahel pooleks
++  function eurText(v) {
++    return plainAmount(v) + "\u00a0€";
++  }
++
++  // Protsent sõnena (päisest): "28,32%"
++  function percentText(v) {
++    v = parseFloat(v);
++    return isFinite(v) ? v.toFixed(2).replace(".", ",") + "%" : "–";
++  }
++
++  function taxScenario() {
++    var radios = getTaxScenarios();
++    for (var i = 0; i < radios.length; i++) {
++      if (radios[i].checked === true) return Number(radios[i].value);
++    }
++    return 1;
++  }
++
++  // Iga lapse lapsetoetus kuus (1. ja 2. laps child12, edasi child3plus); tühi, kui aastat tabelis pole
++  function childAllowanceList(y, children) {
++    var b = CHILD_BENEFITS[Number(y)];
++    var list = [];
++    if (!b) return list;
++    for (var i = 0; i < children; i++) list.push(i < 2 ? b.child12 : b.child3plus);
++    return list;
++  }
++
++  /* ----- MUDEL: loeb kalkulaatori vahetulemused ja koostab tulbad ----- */
++
++  // Senise korra väärtused ühe täiskasvanu kohta (peidetud sisendid; leibkond neid üle ei kirjuta)
++  function readStdPerAdult() {
++    return {
++      gross: fieldNum("grosswage"),
++      social: fieldNum("socialtax"),
++      uiEr: fieldNum("ui_employer"),
++      uiEe: fieldNum("ui_employee"),
++      pens: fieldNum("fpp_1"),
++      tax: fieldNum("incometax"),
++    };
++  }
++
++  // Kodanikupalga variandi väärtused ühe täiskasvanu kohta (spanid; leibkond pole veel peale kirjutatud)
++  function readUbiPerAdult() {
++    return {
++      gross: spanNum("grosswage_ubi"),
++      social: spanNum("socialtax_ubi"),
++      uiEr: spanNum("ui_employer_ubi"),
++      uiEe: spanNum("ui_employee_ubi"),
++      pens: spanNum("fpp_1_ubi"),
++      tax: spanNum("incometax_ubi"),
++      coh: spanNum("ubicontrib"),
++      flat: spanNum("flatincometax"),
++    };
++  }
++
++  function addSeg(list, key, value) {
++    var v = cents(value);
++    if (v > 0) list.push({ k: key, v: v });
++  }
++
++  function makeBar(label, segs) {
++    var total = 0;
++    segs.forEach(function (s) {
++      total += s.v;
++    });
++    return { label: label, segs: segs, total: cents(total) };
++  }
++
++  // Tööandja kulud: brutopalk + sotsiaalmaks + tööandja töötuskindlustus (viimane ainult kui valitud, muidu 0)
++  function costBar(label, p, K) {
++    var segs = [];
++    addSeg(segs, "gross", K * p.gross);
++    addSeg(segs, "social", K * p.social);
++    addSeg(segs, "uiEr", K * p.uiEr);
++    return makeBar(label, segs);
++  }
++
++  // Maksud, mis brutopalgast maha lähevad (ühe täiskasvanu kohta)
++  function wageDeductions(p, scenario, withCohesion) {
++    var d = p.uiEe + p.pens;
++    if (!withCohesion) return d + p.tax;
++    return d + (scenario === 2 ? p.flat : p.coh + p.tax);
++  }
++
++  // Brutopalga tulp: tööandjalt kättesaadav neto + mahaarvamised.
++  // withCohesion = kodanikupalga variandi maksud (variant 2: ühtlane tulumaks; variant 1: ühtekuuluvusmaks + tulumaks)
++  function grossBar(label, p, K, scenario, withCohesion) {
++    var segs = [];
++    addSeg(segs, "emp", Math.max(0, K * (p.gross - wageDeductions(p, scenario, withCohesion))));
++    addSeg(segs, "uiEe", K * p.uiEe);
++    addSeg(segs, "pens", K * p.pens);
++    if (withCohesion && scenario === 2) {
++      addSeg(segs, "flat", K * p.flat);
++    } else {
++      if (withCohesion) addSeg(segs, "coh", K * p.coh);
++      addSeg(segs, "tax", K * p.tax);
++    }
++    return makeBar(label, segs);
++  }
++
++  // Leibkonna kirjeldus diagrammi vasakul
++  function describeHouseholdChart(c, hh, scenario) {
++    var K = hh.adults;
++    var what = c.in1 ? "tööandja kulu" : c.in3 ? "netotulu" : "brutopalk";
++    var amount = toNum(c.sum);
++    var parents = K === 2 ? "vanemate " + what + ": 2\u00a0×\u00a0" + eurText(amount) : "vanema " + what + ": " + eurText(amount);
++    var desc = {
++      household: "Lapsi: " + hh.children + ", vanemaid: " + K + ", " + parents,
++      model: "Mudel: kodanikupalk " + eurText(c.ubiPerMonth),
++      tax:
++        scenario === 2
++          ? "ühtlane tulumaks " + percentText(c.newFlatTax) + " kogu brutotulult"
++          : "ühtekuuluvusmaks " + percentText(c.addedTax) + " kogu brutotulult, tulumaks endisel kujul",
++      note: "",
++    };
++    if (hh.children > 0 && hh.childUbiOn && isChildUbiSeparate()) {
++      desc.model += ", lapse kodanikupalk " + eurText(hh.childUbiEach);
++    }
++    if (hh.children > 0 && !hh.childUbiOn) {
++      desc.note = "Lapsed ei kuulu kodanikupalga sihtrühma, seega lastele kodanikupalka ei arvestata.";
++    }
++    return desc;
++  }
++
++  /*
++    Koostab diagrammi mudeli. Tagastab null, kui diagrammimoodulit lehel pole.
++    c = wageCalc() kontekst (c.sum, c.year, c.hh jm), kutsutakse enne applyHousehold()-i.
++  */
++  function buildFamilyChartModel(c) {
++    if (el("family-chart") === null || !c || !c.hh) return null;
++    var hh = c.hh;
++    var K = hh.adults;
++    var scenario = taxScenario();
++    var std = readStdPerAdult();
++    var ubi = readUbiPerAdult();
++    var ubiMonthly = toNum(c.ubiPerMonth);
++
++    // Tööandjalt kättesaadav neto ühe täiskasvanu kohta: senine kord; kodanikupalgaga.
++    // Netotulu režiimis (input_3) on sisestatud summa neto koos kodanikupalgaga (nagu tulemustabelis).
++    var empStd = Math.max(0, std.gross - std.uiEe - std.pens - std.tax);
++    var empUbi = c.in3
++      ? Math.max(0, toNum(c.sum) - ubiMonthly)
++      : Math.max(0, ubi.gross - wageDeductions(ubi, scenario, true));
++
++    // Netotulu režiimis on brutopalk kahes süsteemis erinev: siis tööandja kulude ja brutopalga tulbad eraldi
++    var differ = Math.abs(std.gross - ubi.gross) > 0.005;
++
++    var bars = [];
++    if (differ) {
++      bars.push(costBar("Tööandja kulud: senine", std, K));
++      bars.push(costBar("Tööandja kulud: KdP", ubi, K));
++      bars.push(grossBar("Brutopalk: senine", std, K, scenario, false));
++      bars.push(grossBar("Brutopalk: KdP", ubi, K, scenario, true));
++    } else {
++      bars.push(costBar("Tööandja kulud", ubi, K));
++      bars.push(grossBar("Brutopalk", ubi, K, scenario, true));
++    }
++
++    // Neto kodanikupalgaga: tööandjalt + vanemate kodanikupalk + iga lapse kodanikupalk
++    var netUbi = [];
++    addSeg(netUbi, "emp", K * empUbi);
++    addSeg(netUbi, "par", K * ubiMonthly);
++    if (hh.childUbiOn) {
++      for (var i = 0; i < hh.children; i++) addSeg(netUbi, "kid", hh.childUbiEach);
++    }
++    bars.push(makeBar("Neto: KdP " + eurText(ubiMonthly), netUbi));
++
++    // Neto senise korra järgi: tööandjalt + lasterikka pere toetus + iga lapse lapsetoetus
++    var netStd = [];
++    addSeg(netStd, "emp", K * empStd);
++    if (hh.largeFamily > 0) addSeg(netStd, hh.children >= 7 ? "l7" : "l36", hh.largeFamily);
++    childAllowanceList(c.year, hh.children).forEach(function (v) {
++      addSeg(netStd, "kid", v);
++    });
++    bars.push(makeBar("Neto: " + c.year, netStd));
++
++    var has = function (segs) {
++      return segs.some(function (s) {
++        return s.k === "kid";
++      });
++    };
++    var kidWhat = has(netUbi) && has(netStd) ? "kodanikupalk / lapsetoetus " + c.year : has(netStd) ? "lapsetoetus " + c.year : "kodanikupalk";
++    return {
++      bars: bars,
++      parentsLabel: K === 1 ? "Vanema kodanikupalk" : "Vanemate kodanikupalk",
++      kidLabel: "Laps (" + kidWhat + ")",
++      desc: describeHouseholdChart(c, hh, scenario),
++    };
++  }
++
++  /* ----- JOONISTAMINE ----- */
++  function segmentLabel(model, key) {
++    if (key === "par") return model.parentsLabel;
++    if (key === "kid") return model.kidLabel;
++    return SEGMENTS[key].label;
++  }
++
++  // Lõigud, mis diagrammil tegelikult olemas on (legendi jaoks)
++  function presentKeys(model) {
++    var seen = {};
++    model.bars.forEach(function (b) {
++      b.segs.forEach(function (s) {
++        seen[s.k] = true;
++      });
++    });
++    return SEGMENT_ORDER.filter(function (k) {
++      return seen[k] === true;
++    });
++  }
++
++  // Telje samm: 1, 2, 2,5 või 5 * 10^n, nii et ruudustikus oleks umbes 5-6 joont
++  function niceStep(max) {
++    if (!(max > 0)) return 200;
++    var raw = max / 6;
++    var mag = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
++    var options = [1, 2, 2.5, 5, 10];
++    for (var i = 0; i < options.length; i++) {
++      if (options[i] * mag >= raw) return options[i] * mag;
++    }
++    return 10 * mag;
++  }
++
++  function svgText(x, y, s, o) {
++    o = o || {};
++    return (
++      '<text x="' + x + '" y="' + y + '" font-size="' + (o.size || 13) + '" text-anchor="' + (o.anchor || "start") + '"' +
++      (o.bold ? ' font-weight="700"' : "") +
++      ' fill="' + (o.fill || "#262626") + '">' + esc(s) + "</text>"
++    );
++  }
++
++  // Tulba silt ridadeks (kuni 2); " €" seotakse eelneva numbriga, et summat ei lõhutaks
++  function labelLines(label, maxChars) {
++    label = label.replace(/ €/g, "\u00a0€");
++    if (!maxChars || label.length <= maxChars) return [label];
++    var words = label.split(" ");
++    var first = words[0];
++    var i = 1;
++    while (i < words.length && (first + " " + words[i]).length <= maxChars) first += " " + words[i++];
++    return i < words.length ? [first, words.slice(i).join(" ")] : [first];
++  }
++
++  function svgLabel(x, cy, lines, L) {
++    var lh = L.fLabel * 1.15;
++    var first = cy - ((lines.length - 1) * lh) / 2 + L.fLabel * 0.35;
++    return lines
++      .map(function (line, i) {
++        return svgText(x, (first + i * lh).toFixed(1), line, { anchor: "end", size: L.fLabel });
++      })
++      .join("");
++  }
++
++  function buildSvg(model, L) {
++    var x0 = L.labelWidth;
++    var max = 0;
++    model.bars.forEach(function (b) {
++      if (b.total > max) max = b.total;
++    });
++    var step = niceStep(max);
++    var axisMax = Math.max(step, Math.ceil(max / step - 1e-9) * step);
++    var scale = L.barWidth / axisMax;
++
++    var y = L.top;
++    var bodies = "";
++    model.bars.forEach(function (b) {
++      var x = x0;
++      var cy = y + L.barHeight / 2;
++      var base = (cy + L.fSeg * 0.35).toFixed(1);
++      bodies += svgLabel(x0 - 8, cy, labelLines(b.label, L.wrap), L);
++      b.segs.forEach(function (s) {
++        var w = s.v * scale;
++        var def = SEGMENTS[s.k];
++        bodies +=
++          '<rect x="' + x.toFixed(2) + '" y="' + y + '" width="' + w.toFixed(2) + '" height="' + L.barHeight +
++          '" fill="' + def.color + '" stroke="#fff" stroke-width="1.5"><title>' +
++          esc(segmentLabel(model, s.k) + ": " + fmt(s.v) + " €") + "</title></rect>";
++        if (w > L.minSeg) {
++          bodies += svgText(x + w / 2, base, fmt(s.v), { anchor: "middle", size: L.fSeg, fill: def.dark ? "#fff" : "#1f1f1f" });
++        }
++        x += w;
++      });
++      bodies += svgText(x + 6, (cy + L.fTotal * 0.35).toFixed(1), fmt(b.total), { size: L.fTotal, bold: true });
++      y += L.barHeight + L.barGap;
++    });
++
++    var grid = "";
++    for (var v = 0; v <= axisMax + 1e-9; v += step) {
++      var gx = (x0 + v * scale).toFixed(2);
++      grid += '<line x1="' + gx + '" x2="' + gx + '" y1="' + (L.top - 6) + '" y2="' + y + '" stroke="#d9d9d9"/>';
++      grid += svgText(gx, y + L.fAxis + 4, fmt(v), { anchor: "middle", size: L.fAxis, fill: "#595959" });
++    }
++    grid += svgText(x0 + L.barWidth / 2, y + 2 * L.fAxis + 10, "€ kuus, kogu leibkond", { anchor: "middle", size: L.fAxis, fill: "#595959" });
++
++    var width = x0 + L.barWidth + L.rightMargin;
++    var height = y + 2 * L.fAxis + 20;
++    var defs =
++      '<defs><pattern id="fc-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
++      '<rect width="7" height="7" fill="#8CA3B8"/><rect width="3.5" height="7" fill="#FFC000"/></pattern></defs>';
++    var summary = model.bars
++      .map(function (b) {
++        return b.label + " " + fmt(b.total);
++      })
++      .join(", ");
++    return (
++      '<svg class="fc-svg" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' +
++      esc("Leibkonna kuine sissetulek, € kuus: " + summary) + '">' + defs + grid + bodies + "</svg>"
++    );
++  }
++
++  function renderLegend(model) {
++    var box = el("family-chart-legend");
++    if (box === null) return;
++    box.innerHTML = presentKeys(model)
++      .map(function (k) {
++        var swatch = k === "coh" ? HATCH_CSS : SEGMENTS[k].color;
++        return '<span><i style="background:' + swatch + '"></i>' + esc(segmentLabel(model, k)) + "</span>";
++      })
++      .join("");
++  }
++
++  function renderDescription(model) {
++    var box = el("family-chart-desc");
++    if (box === null) return;
++    var d = model.desc;
++    box.innerHTML =
++      '<h3 class="fc-desc-title">Leibkond</h3>' +
++      "<p>" + esc(d.household) + "</p>" +
++      "<p>" + esc(d.model) + "</p>" +
++      "<p>" + esc(d.tax) + "</p>" +
++      (d.note ? '<p class="fc-note">' + esc(d.note) + "</p>" : "");
++  }
++
++  // Paigutus sõltub diagrammi kasti laiusest; peidetud kasti (laius 0, nt mobiilivaheleht) puhul lai
++  function layoutFor(box) {
++    var w = box.clientWidth;
++    return w > 0 && w < WIDE_MIN_PX ? LAYOUTS.compact : LAYOUTS.wide;
++  }
++
++  // Joonistab uuesti, kui kasti laius (ja sellega paigutus) muutub: akna suuruse muutus või vaheleht avatakse
++  function watchResize(box) {
++    if (watching) return;
++    watching = true;
++    var redraw = function () {
++      if (lastModel !== null) renderFamilyChart(lastModel);
++    };
++    if (typeof ResizeObserver === "function") new ResizeObserver(redraw).observe(box);
++    else window.addEventListener("resize", redraw);
++  }
++
++  /*
++    Joonistab mudeli. Arvutus käivitub HTML-i käsitlejatest sageli kaks korda toimingu kohta;
++    kui mudel ja paigutus pole viimasest joonistamisest muutunud, ei tehta midagi.
++  */
++  function renderFamilyChart(model) {
++    var box = el("family-chart");
++    if (box === null || model === null) return;
++    lastModel = model;
++    var layout = layoutFor(box);
++    var signature = layout.name + JSON.stringify(model);
++    watchResize(box);
++    if (signature === lastSignature && box.firstChild !== null) return;
++    lastSignature = signature;
++    renderLegend(model);
++    renderDescription(model);
++    box.innerHTML = buildSvg(model, layout);
++  }
++
++  window.buildFamilyChartModel = buildFamilyChartModel;
++  window.renderFamilyChart = renderFamilyChart;
++})();
+diff --git a/moodulid/kalkulaator-uus.phtml b/moodulid/kalkulaator-uus.phtml
+index 9620783..7dcbf82 100644
+--- a/moodulid/kalkulaator-uus.phtml
++++ b/moodulid/kalkulaator-uus.phtml
+@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
+       </noscript>
+ 
+ 
+-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261031"></script>
++      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261117"></script>
+ 
+       <script>checkPeople();</script>
+ 
+@@ -891,6 +891,46 @@ if ($fabv == 'details')
+ <?php }?>
+ <!-- Lõpp: KalkulaatorV3M (3)-->
+ 
++<!-- KalkulaatorV3M (4)-->
++
++<?php
++$app = JFactory::getApplication();
++$input = $app->input;
++$fabv = $input->get('view');
++if ($fabv == 'details')
++{
++  ?>
++
++<!-- Siin algab neljas moodul: leibkonna sissetuleku diagramm (JS: ubiTaxCalcCompare.js, 10. osa) -->
++
++<style>
++  .family-chart-module .fc-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 12px; font-size: 13px; line-height: 1.3; }
++  .family-chart-module .fc-legend span { display: inline-flex; align-items: center; gap: 6px; }
++  .family-chart-module .fc-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 2px; flex: none; border: 1px solid rgba(0,0,0,.15); }
++  .family-chart-module .fc-grid { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-start; }
++  .family-chart-module .fc-desc { flex: 0 1 190px; min-width: 160px; font-size: 14px; line-height: 1.35; }
++  .family-chart-module .fc-desc p { margin: 0 0 6px; }
++  .family-chart-module .fc-desc-title { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
++  .family-chart-module .fc-note { font-size: 12px; color: #595959; }
++  .family-chart-module .fc-chart { flex: 1 1 380px; min-width: 0; }
++  .family-chart-module .fc-svg { display: block; width: 100%; height: auto; font-family: inherit; }
++</style>
++
++<div class="result-container family-chart-module">
++  <h2 class="toc1 toc-result">Diagramm</h2>
++  <p class="small mb-1">Leibkonna kuine sissetulek kalkulaatoris tehtud valiku järgi: tööandja kulud, brutopalk ning neto kodanikupalgaga ja kehtiva (kehtinud) korra järgi. Hõljuta hiirt lõigu kohal, et näha summat.</p>
++  <div id="family-chart-legend" class="fc-legend" aria-label="Diagrammi legend"></div>
++  <div class="fc-grid">
++    <div id="family-chart-desc" class="fc-desc"></div>
++    <div id="family-chart" class="fc-chart"></div>
++  </div>
++</div>
++
++<!-- Neljanda mooduli lõpp -->
++
++<?php }?>
++<!-- Lõpp: KalkulaatorV3M (4)-->
++
+ <!--KalkulaatorV3-bottom-->
+ <?php
+ $app = JFactory::getApplication();
