@@ -1767,7 +1767,7 @@ function initializeCalculator() {
     coh: { label: "Ühtekuuluvusmaks", color: "url(#fc-hatch)", dark: false },
     tax: { label: "Tulumaks", color: "#FFC000", dark: false },
     flat: { label: "Ühtlane tulumaks", color: "#FFC000", dark: false },
-    par: { label: "Vanemate kodanikupalk", color: "#31869B", dark: true },
+    par: { label: "Täiskasvanute kodanikupalk", color: "#31869B", dark: true },
     l36: { label: "Lasterikka pere toetus (3–6 last)", color: "#8064A2", dark: true },
     l7: { label: "Lasterikka pere toetus (7+ last)", color: "#5B4580", dark: true },
     kid: { label: "Laps", color: "#A9D7E2", dark: false },
@@ -1932,9 +1932,9 @@ function initializeCalculator() {
     var K = hh.adults;
     var what = c.in1 ? "tööandja kulu" : c.in3 ? "netotulu" : "brutopalk";
     var amount = toNum(c.sum);
-    var parents = K === 2 ? "vanemate " + what + ": 2\u00a0×\u00a0" + eurText(amount) : "vanema " + what + ": " + eurText(amount);
+    var parents = K === 2 ? "täiskasvanute " + what + ": 2\u00a0×\u00a0" + eurText(amount) : "täiskasvanu " + what + ": " + eurText(amount);
     var desc = {
-      household: "Lapsi: " + hh.children + ", vanemaid: " + K + ", " + parents,
+      household: "Lapsi: " + hh.children + ", täiskasvanuid: " + K + ", " + parents,
       model: "Mudel: kodanikupalk " + eurText(c.ubiPerMonth),
       tax:
         scenario === 2
@@ -2011,7 +2011,7 @@ function initializeCalculator() {
     var kidWhat = has(netUbi) && has(netStd) ? "kodanikupalk / lapsetoetus " + c.year : has(netStd) ? "lapsetoetus " + c.year : "kodanikupalk";
     return {
       bars: bars,
-      parentsLabel: K === 1 ? "Vanema kodanikupalk" : "Vanemate kodanikupalk",
+      parentsLabel: K === 1 ? "Täiskasvanu kodanikupalk" : "Täiskasvanute kodanikupalk",
       kidLabel: "Laps (" + kidWhat + ")",
       desc: describeHouseholdChart(c, hh, scenario),
     };
@@ -2152,10 +2152,10 @@ function initializeCalculator() {
     if (box === null) return;
     var d = model.desc;
     box.innerHTML =
-      '<h3 class="fc-desc-title">Leibkond</h3>' +
-      "<p>" + esc(d.household) + "</p>" +
-      "<p>" + esc(d.model) + "</p>" +
-      "<p>" + esc(d.tax) + "</p>" +
+      '<h3 class="fc-desc-title">Leibkond - ' +
+      esc(d.household) + "</h3>" +
+      '<h3 class="fc-desc-title">' + esc(d.model) + ", " +
+      esc(d.tax) + "</h3>" +
       (d.note ? '<p class="fc-note">' + esc(d.note) + "</p>" : "");
   }
 

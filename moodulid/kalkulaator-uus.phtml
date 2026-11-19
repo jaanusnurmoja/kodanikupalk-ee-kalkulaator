@@ -80,10 +80,10 @@ if ($fabv != 'details') { ?>
 
       <div class="calc-container" style="width: 100%">
         <div class="row">
-          <div class="col-sm-12">
+          <div id="ubi-header" class="col-sm-12">
             <script>initUbiAmountFromBaseData();</script>
-            <h2 style="font-size: 1.55em; margin-bottom: 5px;" class="lh-1">
-              Kui kodanikupalk oleks <span id="yearToObserve"></span>. aastal (olnud)
+            <h4 id="if-ubi-was" style="margin-bottom: 5px;" class="lh-1">
+              <span class="less-more">Kui kodanikupalk oleks </span><span class="less-more visually-hidden">Kodanikupalk </span><span id="yearToObserve"></span><span class="less-more">. aastal (olnud)</span>
               <input style="
         background: #f7cb2b;
         font-weight: bold;
@@ -95,15 +95,15 @@ if ($fabv != 'details') { ?>
                 onkeyup="onUbiAmountChange(this)"
                 onclick="this.value = ''; resetAlert();">
               eurot kuus
-            </h2>
-            <h6 class="lh-1">
+            </h4>
+            <h4 class="lh-1 h6"><span class="less-more">
               (<input type="text" id="ubiPerYear" readonly="readonly" class="input-mini no-border h6" style="
         font-size: 0.9em;
         font-weight: bold;
         vertical-align: text-top;
         width: 77px;
       ">
-              aastas) <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="ubi_child_x"
+              aastas)</span> <input class="css-checkbox" style="display: inline; margin: 3px; vertical-align: text-top" type="checkbox" id="ubi_child_x"
                 name="ubi_child_x" value="true" onchange="toggleChildUbi(this);document.getElementById('ei').classList.toggle('d-none')"><label class="chk-label"
                 for="ubi_child_x" style="display: inline">Lapsele teises suuruses?</label><span id="ei"> ei</span><span id="ubi-child-box" class="d-none">
                 jah, 
@@ -118,20 +118,20 @@ if ($fabv != 'details') { ?>
                   onkeyup="onUbiAmountChange(this)"
                   onclick="this.value = ''; resetAlert();">
                 eurot kuus
-                (<input type="text" id="ubiChildPerYear" readonly="readonly" class="input-mini no-border h6" style="
+                <span class="less-more">(<input type="text" id="ubiChildPerYear" readonly="readonly" class="input-mini no-border h6" style="
         font-size: 0.9em;
         font-weight: bold;
         vertical-align: text-top;
         width: 77px;
       ">
                 aastas)
-              </span>. Kokku <span id="targetPpl"></span> inimesele ja seniseid kulutusi on kärbitud <span id="reduceBy"></span> € võrra:
+              . Kokku <span id="targetPpl"></span> inimesele ja seniseid kulutusi on kärbitud <span id="reduceBy"></span> € võrra:</span></span>
 
-            </h6>
+            </h4>
           </div>
         </div>
 
-        <div id="taxinfo" class="row">
+        <div id="taxinfo" class="row less-more">
           <div class="col-sm-8 col-L">
             <blockquote>
               <ul id="spendingNeed">
@@ -173,7 +173,7 @@ if ($fabv != 'details') { ?>
         </div>
         <div class="row">
           <div class="col-sm-10">
-            <div id="altSentence" class="info bg-darkYellow p-1">
+            <div id="altSentence" class="info bg-darkYellow p-1 less-more">
               <span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                   class="bi bi-info-circle" viewBox="0 0 16 16">
@@ -231,7 +231,9 @@ if ($fabv != 'details') { ?>
           </div>
           <div class="col-sm-2">
               <input type="button" class="btn btn-warning btn-sm" onclick="
-      document.getElementById('taxinfo').classList.toggle('visually-hidden');
+                document.getElementById('ubi-header').classList.toggle('d-flex');
+                document.getElementById('if-ubi-was').classList.toggle('h6');
+                document.querySelectorAll('.less-more').forEach(el => el.classList.toggle('visually-hidden'));
       document.getElementById('display-years').classList.toggle('btn-group-sm');
       this.value=this.value==('<?php echo $more?>') ? '<?php echo $less?>':'<?php echo $more?>';" value="<?php echo $less?>">
             
@@ -528,6 +530,48 @@ if ($fabv != 'details') { ?>
 <!-- Siin on teise mooduli lõpp!-->
 <?php }?>
 <!-- Lõpp: KalkulaatorV3M (2)-->
+
+<!-- KalkulaatorV3M (diagramm)-->
+
+<?php
+$app = JFactory::getApplication();
+$input = $app->input;
+$fabv = $input->get('view');
+if ($fabv == 'details')
+{
+  ?>
+
+<!-- Siin algab moodul: leibkonna sissetuleku diagramm (JS: ubiTaxCalcCompare.js, 10. osa) -->
+
+<style>
+  .family-chart-module .fc-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 12px; font-size: 13px; line-height: 1.3; }
+  .family-chart-module .fc-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .family-chart-module .fc-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 2px; flex: none; border: 1px solid rgba(0,0,0,.15); }
+  .family-chart-module .fc-grid { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-start; }
+  .family-chart-module .fc-desc { flex: 0 1 190px; min-width: 160px; font-size: 14px; line-height: 1.35; }
+  .family-chart-module .fc-desc p { margin: 0 0 6px; }
+  .family-chart-module .fc-desc-title { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
+  .family-chart-module .fc-note { font-size: 12px; color: #595959; }
+  .family-chart-module .fc-chart { flex: 1 1 380px; min-width: 0; }
+  .family-chart-module .fc-svg { display: block; width: 100%; height: auto; font-family: inherit; }
+</style>
+
+<div class="result-container family-chart-module">
+  <h2 class="toc1 toc-result">Leibkonna ühe kuu sissetulek</h2>
+  <p class="small mb-1">Leibkonna kuine sissetulek kalkulaatoris tehtud valiku ja kehtiva (kehtinud) korra järgi. <strong>Summad ümardatud euro täpsusega.</strong> Kui summat pole näha, hõljuta selle nägemiseks hiirt lõigu kohal.</p>
+  <div id="family-chart-legend" class="fc-legend" aria-label="Diagrammi legend"></div>
+  <!--div class="fc-grid">
+    <div id="family-chart-desc" class="fc-desc"></div>
+    <div id="family-chart" class="fc-chart"></div>
+  </div-->
+  <div id="family-chart" class="fc-chart"></div>
+  <div id="family-chart-desc" class="fc-desc"></div>
+</div>
+
+<!-- Diagrammi mooduli lõpp -->
+
+<?php }?>
+<!-- Lõpp: KalkulaatorV3M (diagramm)-->
 
 <!-- KalkulaatorV3M (3)-->
 
@@ -890,46 +934,6 @@ if ($fabv == 'details')
 
 <?php }?>
 <!-- Lõpp: KalkulaatorV3M (3)-->
-
-<!-- KalkulaatorV3M (4)-->
-
-<?php
-$app = JFactory::getApplication();
-$input = $app->input;
-$fabv = $input->get('view');
-if ($fabv == 'details')
-{
-  ?>
-
-<!-- Siin algab neljas moodul: leibkonna sissetuleku diagramm (JS: ubiTaxCalcCompare.js, 10. osa) -->
-
-<style>
-  .family-chart-module .fc-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 12px; font-size: 13px; line-height: 1.3; }
-  .family-chart-module .fc-legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .family-chart-module .fc-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 2px; flex: none; border: 1px solid rgba(0,0,0,.15); }
-  .family-chart-module .fc-grid { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-start; }
-  .family-chart-module .fc-desc { flex: 0 1 190px; min-width: 160px; font-size: 14px; line-height: 1.35; }
-  .family-chart-module .fc-desc p { margin: 0 0 6px; }
-  .family-chart-module .fc-desc-title { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
-  .family-chart-module .fc-note { font-size: 12px; color: #595959; }
-  .family-chart-module .fc-chart { flex: 1 1 380px; min-width: 0; }
-  .family-chart-module .fc-svg { display: block; width: 100%; height: auto; font-family: inherit; }
-</style>
-
-<div class="result-container family-chart-module">
-  <h2 class="toc1 toc-result">Diagramm</h2>
-  <p class="small mb-1">Leibkonna kuine sissetulek kalkulaatoris tehtud valiku järgi: tööandja kulud, brutopalk ning neto kodanikupalgaga ja kehtiva (kehtinud) korra järgi. Hõljuta hiirt lõigu kohal, et näha summat.</p>
-  <div id="family-chart-legend" class="fc-legend" aria-label="Diagrammi legend"></div>
-  <div class="fc-grid">
-    <div id="family-chart-desc" class="fc-desc"></div>
-    <div id="family-chart" class="fc-chart"></div>
-  </div>
-</div>
-
-<!-- Neljanda mooduli lõpp -->
-
-<?php }?>
-<!-- Lõpp: KalkulaatorV3M (4)-->
 
 <!--KalkulaatorV3-bottom-->
 <?php
