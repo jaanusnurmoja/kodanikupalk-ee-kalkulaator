@@ -276,7 +276,7 @@ if ($fabv != 'details') { ?>
                     <p>
                       <strong>Kui summa allpool lahtris oleks (vali)...</strong>
                     </p>
-                    <div class="btn-group radio" style="padding: 0 0 8px 0">
+                    <div class="btn-group btn-group-sm radio" style="padding: 0 0 8px 0">
                       <input class="btn-check" type="radio" id="input_1" name="input" value="1"
                         onkeyup="outputCalc();drawChart();displayAlert();"
                         onchange="outputCalc();drawChart();displayAlert();"
@@ -445,6 +445,67 @@ if ($fabv != 'details') { ?>
                     </div>
                   </td>
                 </tr>
+				<tr>
+				<td colspan="2">
+				<style>
+					input:disabled {
+						display: inline;
+						width: 60px;
+					}
+				</style>
+				  <div>
+					<input class="css-radio disabled visually-hidden" type="radio" id="F1" name="tfx" value="1" disabled="disabled"
+					  onkeyup="outputCalc();drawChart();disable();displayAlert();"
+					  onclick="outputCalc();drawChart();disable(); displayAlert();" checked="checked"
+					  style="display: inline; margin: 3px"><label class="css-label" style="display: inline"
+					  for="F1">Maksuvaba tulu</label>&nbsp;
+					<span id="help5-title" class="handcursor" style="display: inline" disabled="disabled">
+					  <img src="/images/help16.png" class="help" alt="help5" data-html="true" data-toggle="popover"
+						data-placement="bottom"
+						data-content="&lt;ul&gt;&lt;li&gt;&lt;p&gt;aastatuluga &lt;strong&gt;kuni&lt;/strong&gt; &lt;strong&gt;14&nbsp;400&lt;/strong&gt;&nbsp;eurot on maksuvaba tulu &lt;strong&gt;6000&nbsp;eurot aastas&lt;/strong&gt;,&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;aastatulu kasvades &lt;strong&gt;14&nbsp;400&nbsp;eurolt 25&nbsp;200&nbsp;euroni&lt;/strong&gt; väheneb maksuvaba tulu vastavalt valemile &lt;strong&gt;6000 – 6000 ÷ 10 800 × (tulu summa – 14&nbsp;400)&lt;/strong&gt;,&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;aastatuluga &lt;strong&gt;üle 25&nbsp;200 euro&lt;/strong&gt; on maksuvaba tulu &lt;strong&gt;0&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;"
+						aria-label="Maksuvababa tulu" data-bs-original-title="Maksuvababa tulu">
+					</span>
+					<span>
+					  <input class="vis input-mini R W120 form-control-plaintext" disabled="disabled" id="taxfree_sum"
+						name="taxfree_sum" value="0.00" type="text"
+						onkeyup="wageCalc();drawChart(); displayAlert();value=minmax(value,year);"
+						onchange="wageCalc();drawChart();"
+						oninput="document.getElementById('tmpdebug').innerHTML=value+','+year;"
+						onclick="this.value = ''; resetAlert();"></span>
+					<span>€ kuus</span>
+					<span id="taxfree_period_row" style="display: table-row" class="row visually-hidden">
+					  <span>
+						<select class="select120 input-small form-control-plaintext disabled" disabled="disabled"
+						  id="taxfree_period" name="taxfree_period" onchange="outputCalc(); drawChart();"
+						  onkeyup="outputCalc(); drawChart();">
+						  <option value="1" id="M" selected="selected">kuus</option>
+						  <option value="12" id="A">aastas</option>
+						</select>
+					  </span>
+					</span>
+				  </div>
+				  <div>
+					<span>
+					  <input class="css-radio disabled visually-hidden" disabled="disabled" type="radio" id="F2" name="tfx"
+						value="2" onclick="outputCalc();drawChart();disable();displayAlert();" style="display: inline">
+					</span>
+					<label class="css-label" style="display: inline; margin: 3px" for="F2">Aastatulu (bruto)</label>
+					<span id="help6-title" class="handcursor" style="display: inline">
+					  <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help" alt="help6"
+						data-html="true" data-toggle="popover" data-placement="bottom"
+						data-content="&lt;p&gt;Aastatulu hulka arvestatakse:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;tulumaksuga maksustatav tulu (sh välismaalt saadud tulu)&lt;/li&gt;&lt;li&gt;välismaal saadud töötasu ja muu tasu ning dividend, mida Eestis tulumaksuga ei maksustata&lt;/li&gt;&lt;li&gt;Eesti äriühingult saadud dividend või omakapitali väljamakse, mis on äriühingu tasandil maksustatud&lt;/li&gt;&lt;li&gt;ettevõtlustulu lihtsustatud maksustamise seaduse alusel maksustatud summa, mida on vähendatud ettevõtlustulu maksu sotsiaalmaksu võrra&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Aastatuluna arvestatakse töötasu ja muu tasu, võlaõigusliku lepingu alusel saadud teenustasu, ettevõtlustulu, kasu vara võõrandamisest, &lt;b&gt;dividende&lt;/b&gt;, rendi- ja üüritulu, litsentsitasu, intresse, &lt;b&gt;maksustatavat&lt;/b&gt; pension, toetusi, stipendiume, preemiat, hüvitisi või muud tulu.&lt;br/&gt;&lt;br/&gt;Aastatuluna ei arvestata &lt;b&gt;maksuvabasid&lt;/b&gt; hüvitisi, toetusi ja stipendiume ning maksuvabastusi (nt eluaseme või isiklikus tarbimises oleva vallasasja müük), mida füüsilise isiku tuludeklaratsioonis ei deklareerita.&lt;/p&gt;"
+						aria-label="Aastatulu" data-bs-original-title="Aastatulu">
+					</span>
+					<span>
+					  <input class="disabled form-control-plaintext vis input-mini R W120" id="annual_revenue"
+						name="annual_revenue" value="0.00" type="text" onkeyup="wageCalc();drawChart(); displayAlert();"
+						onchange="wageCalc();drawChart();" onclick="this.value = ''; resetAlert();" disabled="disabled">
+					</span>
+					<span> € kuus</span>
+				  </div>
+						
+				</td>
+				</tr>
                 <tr id="fp2014" style="display: none">
                   <td>&nbsp;</td>
                   <td>
@@ -463,56 +524,6 @@ if ($fabv != 'details') { ?>
         </div>
 
         <div class="row">
-          <div class="col-12 col-sm-6">
-            <input class="css-radio disabled visually-hidden" type="radio" id="F1" name="tfx" value="1"
-              onkeyup="outputCalc();drawChart();disable();displayAlert();"
-              onclick="outputCalc();drawChart();disable(); displayAlert();" checked="checked"
-              style="display: inline; margin: 3px"><label class="css-label" style="display: inline"
-              for="F1">Maksuvaba tulu</label>&nbsp;
-            <span id="help5-title" class="handcursor" style="display: inline" disabled="disabled">
-              <img src="/images/help16.png" class="help" alt="help5" data-html="true" data-toggle="popover"
-                data-placement="bottom"
-                data-content="&lt;ul&gt;&lt;li&gt;&lt;p&gt;aastatuluga &lt;strong&gt;kuni&lt;/strong&gt; &lt;strong&gt;14&nbsp;400&lt;/strong&gt;&nbsp;eurot on maksuvaba tulu &lt;strong&gt;6000&nbsp;eurot aastas&lt;/strong&gt;,&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;aastatulu kasvades &lt;strong&gt;14&nbsp;400&nbsp;eurolt 25&nbsp;200&nbsp;euroni&lt;/strong&gt; väheneb maksuvaba tulu vastavalt valemile &lt;strong&gt;6000 – 6000 ÷ 10 800 × (tulu summa – 14&nbsp;400)&lt;/strong&gt;,&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;aastatuluga &lt;strong&gt;üle 25&nbsp;200 euro&lt;/strong&gt; on maksuvaba tulu &lt;strong&gt;0&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;"
-                aria-label="Maksuvababa tulu" data-bs-original-title="Maksuvababa tulu">
-            </span>
-            <span>
-              <input class="vis input-mini R W120 form-control-plaintext" disabled="disabled" id="taxfree_sum"
-                name="taxfree_sum" value="0.00" type="text"
-                onkeyup="wageCalc();drawChart(); displayAlert();value=minmax(value,year);"
-                onchange="wageCalc();drawChart();"
-                oninput="document.getElementById('tmpdebug').innerHTML=value+','+year;"
-                onclick="this.value = ''; resetAlert();"></span>
-            <span>€ kuus</span>
-            <span id="taxfree_period_row" style="display: table-row" class="row visually-hidden">
-              <span>
-                <select class="select120 input-small form-control-plaintext disabled" disabled="disabled"
-                  id="taxfree_period" name="taxfree_period" onchange="outputCalc(); drawChart();"
-                  onkeyup="outputCalc(); drawChart();">
-                  <option value="1" id="M" selected="selected">kuus</option>
-                  <option value="12" id="A">aastas</option>
-                </select>
-              </span>
-            </span>
-          </div>
-          <div class="col-12 col-sm-6">
-            <span>
-              <input class="css-radio disabled visually-hidden" disabled="disabled" type="radio" id="F2" name="tfx"
-                value="2" onclick="outputCalc();drawChart();disable();displayAlert();" style="display: inline">
-            </span>
-            <label class="css-label" style="display: inline; margin: 3px" for="F2">Aastatulu (bruto)</label>
-            <span id="help6-title" class="handcursor" style="display: inline">
-              <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help" alt="help6"
-                data-html="true" data-toggle="popover" data-placement="bottom"
-                data-content="&lt;p&gt;Aastatulu hulka arvestatakse:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;tulumaksuga maksustatav tulu (sh välismaalt saadud tulu)&lt;/li&gt;&lt;li&gt;välismaal saadud töötasu ja muu tasu ning dividend, mida Eestis tulumaksuga ei maksustata&lt;/li&gt;&lt;li&gt;Eesti äriühingult saadud dividend või omakapitali väljamakse, mis on äriühingu tasandil maksustatud&lt;/li&gt;&lt;li&gt;ettevõtlustulu lihtsustatud maksustamise seaduse alusel maksustatud summa, mida on vähendatud ettevõtlustulu maksu sotsiaalmaksu võrra&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Aastatuluna arvestatakse töötasu ja muu tasu, võlaõigusliku lepingu alusel saadud teenustasu, ettevõtlustulu, kasu vara võõrandamisest, &lt;b&gt;dividende&lt;/b&gt;, rendi- ja üüritulu, litsentsitasu, intresse, &lt;b&gt;maksustatavat&lt;/b&gt; pension, toetusi, stipendiume, preemiat, hüvitisi või muud tulu.&lt;br/&gt;&lt;br/&gt;Aastatuluna ei arvestata &lt;b&gt;maksuvabasid&lt;/b&gt; hüvitisi, toetusi ja stipendiume ning maksuvabastusi (nt eluaseme või isiklikus tarbimises oleva vallasasja müük), mida füüsilise isiku tuludeklaratsioonis ei deklareerita.&lt;/p&gt;"
-                aria-label="Aastatulu" data-bs-original-title="Aastatulu">
-            </span>
-            <span>
-              <input class="disabled form-control-plaintext vis input-mini R W120" id="annual_revenue"
-                name="annual_revenue" value="0.00" type="text" onkeyup="wageCalc();drawChart(); displayAlert();"
-                onchange="wageCalc();drawChart();" onclick="this.value = ''; resetAlert();" disabled="disabled">
-            </span>
-            <span> € kuus</span>
-          </div>
         </div>
 
         <div class="row">
