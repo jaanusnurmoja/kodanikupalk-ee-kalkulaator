@@ -1,0 +1,246 @@
+<!-- KalkulaatorV3-top -->
+
+<?php
+$app = JFactory::getApplication();
+$input = $app->input; 
+$fabv = $input->get('view');
+$lang = Joomla\CMS\Factory::getLanguage();
+$joomlaLang = $lang->getTag();
+
+$shortLang = strtolower(substr($joomlaLang, 0, 2));
+$ln = '';
+$more = $shortLang == 'et' ? 'NÄITA ROHKEM' : 'SHOW MORE';
+$less = $shortLang == 'et' ? 'NÄITA VÄHEM' : 'SHOW LESS';
+
+if ($shortLang != 'et') {
+  $ln = "/$shortLang";
+    // Küpsise formaat Google jaoks: /algkeel/sihtkeel (nt /et/en)
+    setcookie('googtrans', "/et/{$shortLang}", 0, '/');
+} else {
+    // Kui ollakse algkeeles, kustutame küpsise, et Google tõlke eemaldaks
+    setcookie('googtrans', '', time() - 3600, '/');
+}
+
+if ($fabv != 'details') { ?>
+<h3>Kalkulaatori kasutamiseks peate avama sobiva aasta lähteandmed.</h3>
+
+<?php
+} else {
+  ?>
+<!-- Siit algab päismoodul -->
+  
+      <div id="fb-root"></div>
+      <script>
+        (function (d, s, id) {
+          var js,
+            fjs = d.getElementsByTagName(s)[0];
+          if (d.getElementById(id)) return;
+          js = d.createElement(s);
+          js.id = id;
+          js.src = "https://connect.facebook.net/et_EE/sdk.js#xfbml=1&version=v3.0";
+          fjs.parentNode.insertBefore(js, fjs);
+        })(document, "script", "facebook-jssdk");
+      </script>
+      <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+      <script>
+        var offset = 100;
+        /* some offset value for which when the header becomes hidden*/
+        jQuery(window).scroll(function () {
+          /*also an option: jQuery .on('scroll') method*/
+          if (
+            jQuery("#top-navbar").is(":visible") &&
+            jQuery(window).scrollTop() < offset
+          ) {
+            /*jQuery('#top-navbar').fadeOut(200);*/
+          } else if (
+            !jQuery("#fixed_bar").is(":visible") &&
+            jQuery(window).scrollTop() > offset
+          ) {
+            /*jQuery('#top-navbar').fadeIn(200);*/
+          }
+        });
+      </script>
+      <div class="mt-0" id="body"></div>
+      <script>
+        document.write("");
+      </script>
+      <noscript>
+        <p class="error">
+          <img src="/./images/alert.gif" alt="Alert!" />&nbsp;<b>VIGA!</b>
+          Veebisirvijas peab olema lubatud JavaScript!
+        </p>
+
+      </noscript>
+
+
+      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261120"></script>
+
+      <script>checkPeople();</script>
+
+      <div class="calc-container" style="width: 100%">
+        <div class="row">
+          <div id="ubi-header" class="col-sm-12">
+            <script>initUbiAmountFromBaseData();</script>
+            <h4 id="if-ubi-was" style="margin-bottom: 5px;" class="lh-1">
+              <span class="less-more">Kui kodanikupalk oleks </span><span class="less-more visually-hidden">Kodanikupalk </span><span id="yearToObserve"></span><span class="less-more">. aastal (olnud)</span>
+              <input style="
+        background: #f7cb2b;
+        font-weight: bold;
+        font-size: 1em;
+        width: 90px;
+        vertical-align: text-top;
+      " type="text" id="ubi-amount" class="input-mini"
+                onchange="onUbiAmountChange(this)"
+                onkeyup="onUbiAmountChange(this)"
+                onclick="this.value = ''; resetAlert();">
+              eurot kuus
+            </h4>
+            <h4 class="lh-1 h6"><span class="less-more">
+              (<input type="text" id="ubiPerYear" readonly="readonly" class="input-mini no-border h6" style="
+        font-size: 0.9em;
+        font-weight: bold;
+        vertical-align: text-top;
+        width: 77px;
+      ">
+              aastas)</span> <input class="css-checkbox" style="display: inline; margin: 3px; vertical-align: text-top" type="checkbox" id="ubi_child_x"
+                name="ubi_child_x" value="true" onchange="toggleChildUbi(this);document.getElementById('ei').classList.toggle('d-none')"><label class="chk-label"
+                for="ubi_child_x" style="display: inline">Lapsele teises suuruses?</label><span id="ei"> ei</span><span id="ubi-child-box" class="d-none">
+                jah, 
+                <input style="
+        background: #f7cb2b;
+        font-weight: bold;
+        font-size: 1em;
+        width: 90px;
+        vertical-align: text-top;
+      " type="text" id="ubi-amount-child" class="input-mini"
+                  onchange="onUbiAmountChange(this)"
+                  onkeyup="onUbiAmountChange(this)"
+                  onclick="this.value = ''; resetAlert();">
+                eurot kuus
+                <span class="less-more">(<input type="text" id="ubiChildPerYear" readonly="readonly" class="input-mini no-border h6" style="
+        font-size: 0.9em;
+        font-weight: bold;
+        vertical-align: text-top;
+        width: 77px;
+      ">
+                aastas)
+              . Kokku <span id="targetPpl"></span> inimesele ja seniseid kulutusi on kärbitud <span id="reduceBy"></span> € võrra:</span></span>
+
+            </h4>
+          </div>
+        </div>
+
+        <div id="taxinfo" class="row less-more">
+          <div class="col-sm-8 col-L">
+            <blockquote>
+              <ul id="spendingNeed">
+                <li>Vajalik kate bruto: <span id="grossNeed"></span></li>
+                <li>Vajalik kate neto: <span id="realNeed"></span></li>
+                </ul>
+              <ul id="newTaxDesc">
+                <li class="lh-1">
+                  Üksikisiku maksude variandid selle katmiseks:
+                  <ol>
+                    <li class="lh-1">
+                      senine tulumaks asendatakse <span id="newFlatTax"></span>%
+                      ühtlase maksuga
+                    </li>
+                    <li class="lh-1">
+                      senine tulumaks jääb, nagu on, lisatakse uus maksukiht
+                      <span id="addedTax"></span>%
+                    </li>
+                  </ol>
+                  (kummalgi juhul ilma maksuvaba osata)
+                </li>
+              </ul>
+            </blockquote>
+
+          </div>
+
+          <div id="aboutRealTaxBurden" class="col-sm-4 col-R">
+
+            <div class="info">
+              <small>Kuid tegelik maksukoormus on alati kodanikupalga võrra väiksem. Seega
+                - mida tähendavad need protsendinumbrid tegelikult ühe või teise
+                palganumbri korral? Seda ütleb allpool olev kalkulaator, mille
+                loomisel on aluseks ja eeskujuks võetud
+                <a href="https://www.kalkulaator.ee/et/palgakalkulaator" target="_blank">kalkulaator.ee
+                  palgakalkulaator.</a>
+              </small>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-sm-10">
+            <div id="altSentence" class="info bg-darkYellow p-1 less-more">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                  class="bi bi-info-circle" viewBox="0 0 16 16">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"></path>
+                  <path
+                    d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0">
+                  </path>
+                </svg>
+              </span>
+              <span>
+                <small>Kui kodanikupalk oleks (olnud) <span id="sametax" class="d-none">täiskasvanule <span
+                      id="altAdult"></span> € ja lapsele <span id="altChild"></span> €</span> <span id="or"
+                    class="d-none">või</span> <span id="sametaxB">lapsele <span id="altChildB"></span> € ja
+                    täiskasvanule <span id="altAdultB"></span> €, siis oleksid kulud ja maksuvajadused (olnud)
+                    sama suured nagu kõigile võrdse <span id="equalUbi"></span> € korral</span></small>
+              </span>
+            </div>
+
+            <div id="display-years" class="btn-group radio">
+              <input class="btn-check" type="radio" name="year" value="2020"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2020', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2020">
+              <label class="btn btn-lg btn-success" for="year2020"> 2020</label>
+
+              <input class="btn-check" type="radio" name="year" value="2021"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2021', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2021">
+              <label class="btn btn-lg btn-success" for="year2021">2021</label>
+
+              <input class="btn-check" type="radio" name="year" value="2022"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2022', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2022">
+              <label class="btn btn-lg btn-success" for="year2022">2022</label>
+
+              <input class="btn-check" type="radio" name="year" value="2023"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2023', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2023">
+              <label class="btn btn-lg btn-success" for="year2023">2023</label>
+
+              <input class="btn-check" type="radio" name="year" value="2024"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2024', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2024">
+              <label class="btn btn-lg btn-success" for="year2024">2024</label>
+
+              <input class="btn-check" type="radio" name="year" value="2025"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2025', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2025">
+              <label class="btn btn-lg btn-success" for="year2025">2025</label>
+              <input class="btn-check" type="radio" name="year" value="2026"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2026', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2026"
+                checked="checked">
+              <label class="btn btn-lg btn-warning" for="year2026">2026</label>
+            </div>
+          </div>
+          <div class="col-sm-2">
+              <input type="button" class="btn btn-warning btn-sm" onclick="
+                document.getElementById('ubi-header').classList.toggle('d-flex');
+                document.getElementById('if-ubi-was').classList.toggle('h6');
+                document.querySelectorAll('.less-more').forEach(el => el.classList.toggle('visually-hidden'));
+      document.getElementById('display-years').classList.toggle('btn-group-sm');
+      this.value=this.value==('<?php echo $more?>') ? '<?php echo $less?>':'<?php echo $more?>';" value="<?php echo $less?>">
+            
+          </div>
+        </div>
+      </div>
+<!-- Päismooduli lõpp -->
+<?php } ?>
+<!-- Lõpp: KalkulaatorV3-top -->
+

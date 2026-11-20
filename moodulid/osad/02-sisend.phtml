@@ -1,0 +1,298 @@
+<!-- KalkulaatorV3M (2)-->
+
+<?php
+  $app = JFactory::getApplication();
+  $input = $app->input;
+  $fabv = $input->get('view');
+  if ($fabv != 'details') { ?>
+
+<h3>Kalkulaatori kasutamiseks peate avama sobiva aasta lähteandmed.</h3>
+
+<?php
+  } else {
+  ?>
+<!-- Siit algab teine moodul -->
+      <div class="calc-container" style="width: 100%">
+
+        <script>initUbiModel();</script>
+
+        <div class="row calc-fit-cols">
+          <div class="col-sm-6 col-L">
+            <table class="table-calc">
+              <tbody>
+                <tr>
+                  <td colspan="2">
+                    <h2 class="toc1 toc-input">Maksustatav tulu (nt töötasu)</h2>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="W50pct" colspan="2" style="text-align: center">
+                    <p>
+                      <strong>Kui summa allpool lahtris oleks (vali)...</strong>
+                    </p>
+                    <div class="btn-group btn-group-sm radio" style="padding: 0 0 8px 0">
+                      <input class="btn-check" type="radio" id="input_1" name="input" value="1"
+                        onkeyup="outputCalc();drawChart();displayAlert();"
+                        onchange="outputCalc();drawChart();displayAlert();"
+                        onclick="outputCalc();drawChart(); displayAlert();">
+                      <label class="btn" for="input_1">Tööandja kulu</label>
+
+                      <div id="help1-title" class="handcursor" style="display: inline; margin: 8px">
+                        <!--sup class="helpicon">&nbsp;?&nbsp;</sup-->
+                        <img src="/images/help16.png" class="help" style="display: inline; z-index: 10" alt="help1"
+                          data-toggle="popover" data-placement="bottom"
+                          data-content="Tööandja kogukulu, sealhulgas töötajale töö eest makstav töötasu, muud tasud ning hüvitised koos kõigi maksude ja maksetega(töötuskindlustusmakse ning kogumispensioni teise sambaga liitumise korral kogumispensioni makse), muud tasud ning hüvitised."
+                          aria-label="Tööandja kulu («palgafond»)"
+                          data-bs-original-title="Tööandja kulu («palgafond»)">
+                      </div>
+
+                      <input class="btn-check" type="radio" id="input_2" name="input" value="2" checked="checked"
+                        onkeyup="outputCalc();drawChart();displayAlert();"
+                        onchange="outputCalc();drawChart();displayAlert();"
+                        onclick="outputCalc();drawChart(); displayAlert();">
+                      <label class="btn" for="input_2">Brutopalk</label>
+
+                      <div id="help2-title" class="handcursor" style="display: inline; margin: 8px">
+                        <img src="/images/help16.png" class="help" style="z-index: 10" alt="help2" data-html="true"
+                          data-toggle="popover" data-placement="bottom"
+                          data-content="&lt;p&gt;Töölepingus või õigusaktis kindlaks määratud töötasu, sealhulgas majandustulemustelt ja tehingutelt makstav tasu, mille hulka on arvutatud seaduse alusel kinnipidamisele kuuluvad maksud ja maksed (s.h. tulumaks, töötaja (kindlustatu) töötuskindlustusmakse ning kogumispensioni teise sambaga liitumise korral kogumispensioni makse).&lt;/p&gt;&lt;p&gt;&lt;b&gt;2022. aastal on töötasu alammääraks täistööajaga töötamise korral tunnis 3,86 eurot ja kuus 654 eurot (vt &lt;a href='https://www.riigiteataja.ee/akt/111122021017?leiaKehtiv' target='_blank' onclick=\'trackOutboundLink('https://www.riigiteataja.ee/akt/111122021017?leiaKehtiv'); return false;\'&gt;VVM 09.12.2020 nr 116&lt;/a&gt;).&lt;/b&gt;&lt;/p&gt;"
+                          aria-label="Brutopalk" data-bs-original-title="Brutopalk">
+                      </div>
+
+                      <input class="btn-check" type="radio" id="input_3" name="input" value="3"
+                        onkeyup="outputCalc();drawChart();displayAlert();"
+                        onchange="outputCalc();drawChart();displayAlert();"
+                        onclick="outputCalc();drawChart(); displayAlert();">
+                      <label class="btn" for="input_3">Netotulu</label>
+
+                      <div id="help3-title" class="handcursor" style="display: inline; margin: 8px">
+                        <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                          style="z-index: 10" alt="help3" data-toggle="popover" data-placement="bottom"
+                          data-content="Töötasu ning muude tasude ning hüvitiste summa, mille töötaja saab kätte pärast maksude ning maksete (sealhulgas tulumaks, töötuskindlustusmakse ning kogumispensioni teise sambaga liitumise korral kogumispensioni makse) jne) maha arvamist."
+                          aria-label="Netopalk" data-bs-original-title="Netopalk">
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="W50pct" style="text-align: left" colspan="2">
+                    <script>initEurFromBaseData();</script>
+                    <input class="vis input-large col-md-8 R W120 fs-3" id="eur" name="eur" value="" type="text"
+                      oninput="setEurGross(this.value);outputCalc();drawChart(); displayAlert();"
+                      onkeyup="setEurGross(this.value);outputCalc();drawChart(); displayAlert();"
+                      onchange="setEurGross(this.value);outputCalc();drawChart();"
+                      onclick="this.value = ''; resetAlert();">&nbsp;€ kuus
+                    <br>
+                    <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="adults2_x"
+                      name="adults2_x" value="true" onchange="wageCalc();"><label class="chk-label" for="adults2_x"
+                      style="display: inline" title="Mõlemal täiskasvanul on sama tulu">2 täiskasvanut</label>
+                    &nbsp;&nbsp;
+                    <label class="chk-label" for="children_count" style="display: inline">Lapsi:</label>
+                    <input class="vis input-mini R W60" style="display: inline; width: 60px" type="number" min="0"
+                      step="1" value="0" id="children_count" name="children_count" oninput="wageCalc();"
+                      onchange="wageCalc();">
+                    <br><small>vaikimisi ilmub siia keskmine brutopalk</small>
+                    <br><small>proovi ka mediaanpalgaga: <span id="medianhint">1800.00</span></small>
+                    <script>initMedianHint();</script>
+                    <select class="select120 input-small form-control-plaintext visually-hidden" disabled="disabled"
+                      id="period" name="period"
+                      onclick="toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();"
+                      onchange="ChangeTFMLabel(GetSelectValue(period)); toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();"
+                      onkeyup="toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();">
+                      <option value="1">tunnis</option>
+                      <option value="2" selected="selected">kuus</option>
+                      <option value="3" id="annual">aastas</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr id="hours_row" style="display: none">
+                  <td>Töötundide arv kuus</td>
+                  <td>
+                    <input class="vis input-mini R W60 fs-4" type="text" id="workhours" name="workhours"
+                      onkeyup="outputCalc();drawChart();" onclick="this.value = '';" value="168" maxlength="4">
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+            <br>
+          </div>
+          <div class="col-sm-6 col-R">
+            <table class="table-calc">
+              <tbody>
+                <tr>
+                  <td colspan="2">
+                    <h2 class="toc1">Mahaarvamised</h2>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox"
+                      id="socialtax_x" name="socialtax_x" value="true" onkeyup="outputCalc();drawChart();"
+                      onchange="outputCalc();drawChart();" onclick="outputCalc();drawChart();displayAlert();">
+                    <!--div id="minSocialtax" style="display:inline"--><label class="chk-label" id="socialtaxLabel"
+                      for="socialtax_x" style="display: inline">Arvesta sotsiaalmaksu min. kuumäära
+                      alusel</label>&nbsp;
+                    <div id="help7-title" class="handcursor" style="display: inline">
+                      <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                        alt="help7" data-html="true" data-toggle="popover" data-placement="bottom"
+                        data-content="&lt;p&gt;Sotsiaalmaksuseaduse § 2&lt;sup&gt;1&lt;/sup&gt; alusel kehtestatav sotsiaalmaksu maksmise aluseks olev &lt;a href='https://www.riigiteataja.ee/akt/RES2021#para2lg7' target='_blank'&gt;kuumäär&lt;/a&gt; on 2021.-2022 aastal 584 eurot, seega sotsiaalmaksu minimaalne kohustus on 192,72 eurot kuus. Vt. täpsemalt &lt;a href='https://www.riigiteataja.ee/akt/123122013060?leiaKehtiv' target='_blank'&gt;sotsiaalmaksuseadusest&lt;/a&gt;.&lt;/p&gt;"
+                        aria-label="Sotsiaalmaksu kuumäär" data-bs-original-title="Sotsiaalmaksu kuumäär">
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="taxfree_x"
+                      name="taxfree_x" value="true" onkeyup="outputCalc();drawChart();"
+                      onchange="outputCalc();drawChart();"
+                      onclick="toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0);outputCalc();drawChart();"
+                      checked="checked"><label class="chk-label" id="taxfreeLabel" style="display: inline"
+                      for="taxfree_x">Arvesta maksuvaba tulu (<span id="tfm">700</span> € kuus<span id="period_unit"
+                        class="visually-hidden"></span>)</label>&nbsp;
+                    <div id="help8-title" class="handcursor" style="display: inline">
+                      <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                        alt="help8" data-html="true" data-toggle="popover" data-placement="bottom"
+                        data-content="&lt;p&gt;Eesti residendist füüsilise isiku maksustamisperioodi tulust maha arvatav maksuvaba tulu.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;Aastatuluga &lt;strong&gt;kuni&lt;/strong&gt; &lt;strong&gt;14&nbsp;400&lt;/strong&gt;&nbsp;eurot on maksuvaba tulu &lt;strong&gt;6000&nbsp;eurot aastas&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Aastatulu kasvades &lt;strong&gt;14&nbsp;400&nbsp;eurolt 25&nbsp;200&nbsp;euroni&lt;/strong&gt; väheneb maksuvaba tulu vastavalt valemile &lt;strong&gt;6000 – 6000 ÷ 10 800 × (tulu summa – 14&nbsp;400)&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Aastatuluga &lt;strong&gt;üle 25&nbsp;200 euro&lt;/strong&gt; on maksuvaba tulu &lt;strong&gt;0&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Vt. ka &lt;a href='https://www.riigiteataja.ee/akt/117122015023?leiaKehtiv#para23' target='_blank'&gt;tulumaksuseadus (TuMS) §&nbsp;23&lt;/a&gt;.&lt;/p&gt;&lt;h3&gt;Töötasu muutus&lt;/h3&gt;&lt;p&gt;Kui soovite arvutada kui palju kasvavad tööandja kulud näiteks brutotöötasu tõstmisel või kui palju tõuseb töötaja netopalk kui brutopalga tõus on näiteks 50 eurot, siis jätke väli «Arvesta maksuvaba tulu» tühjaks ning sisestage lähteandmetesse ainult palgamuutuse summa.&lt;/p&gt;"
+                        aria-label="Maksuvaba tulu alates 2018. aastast"
+                        data-bs-original-title="Maksuvaba tulu alates 2018. aastast">
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" type="checkbox" id="ui1_x" name="ui1_x" value="true"
+                      style="display: inline; margin: 3px" onkeyup="outputCalc();drawChart();"
+                      onchange="outputCalc();drawChart();" onclick="outputCalc();drawChart();"
+                      checked="checked"><label class="chk-label" id="UIEmployerLabel" for="ui1_x"
+                      style="display: inline">Tööandja töötuskindlustusmakse (<span
+                        id="ui1">0.8</span>%)</label>&nbsp;
+                    <div id="help9-title" class="handcursor" style="display: inline">
+                      <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                        alt="help9" data-html="true" data-toggle="popover" data-placement="bottom"
+                        data-content="&lt;p&gt;Töötuskindlustusmakse määrad sätestatakse töötuskindlustuse seaduse § 41 lõike 4 alusel &lt;a href='https://www.riigiteataja.ee/akt/117092019004?leiaKehtiv' target='_blank'&gt;Vabariigi Valitsuse määrusega&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;Tööandja töötuskindlustusmakse määr 2020–2023. aastal on 0,8%&lt;/p&gt;&lt;p&gt; Töötaja (kindlustatu) töötuskindlustusmakse määr 2020–2023. aastal on 1,6%&lt;/p&gt;&lt;p&gt;&lt;a href='https://www.riigiteataja.ee/akt/106072013008?leiaKehtiv' target='_blank'&gt;Töötuskindlustuse seaduse&lt;/a&gt; kohaselt on antud makse maksjateks s.h. töötaja, avalik teenistuja, võlaõigusliku lepingu alusel teenust osutav füüsiline isik. Töötaja ja tööandja makse määrad järgmiseks kalendriaastaks kehtestab Vabariigi Valitsus hiljemalt jooksva kalendriaasta 1. detsembriks.&lt;/p&gt;&lt;hr/&gt;&lt;p&gt;&lt;b&gt;NB!&lt;/b&gt; Juhul kui töötaja (kindlustatu) on jõudnud vanaduspensioniikka või talle on määratud riikliku pensionikindlustuse seaduse §-s 9 sätestatud ennetähtaegne vanaduspension, arvestatakse töötajale töötuskindlustusmakset üksnes &lt;b&gt;tööandjale&lt;/b&gt; kehtestatud määras.&lt;/p&gt;"
+                        aria-label="Töötuskindlustusmakse" data-bs-original-title="Töötuskindlustusmakse">
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" type="checkbox" id="ui2_x" name="ui2_x" value="true"
+                      onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();"
+                      onclick="outputCalc();drawChart();" style="display: inline; margin: 3px"><label
+                      class="chk-label" id="UIEmployeeLabel" for="ui2_x" style="display: inline">Töötaja
+                      (kindlustatu) töötuskindlustusmakse (<span id="ui2">1.6</span>%)</label>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <input class="css-checkbox" type="checkbox" id="pension_x" name="pension_x" value="true"
+                      onclick="toggleRadioVisibility(getYear(), this.selectedIndex == 0); outputCalc(); drawChart();"
+                      onchange="toggleRadioVisibility(getYear(), this.selectedIndex == 0); outputCalc(); drawChart();"
+                      style="display: inline; margin: 3px"><label class="chk-label" id="fundedPensionLabel"
+                      for="pension_x" style="display: inline">Kogumispension (II sammas)</label>&nbsp;
+                    <div id="help10-title" class="handcursor" style="display: inline">
+                      <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help"
+                        alt="help10" data-html="true" data-toggle="popover" data-placement="bottom"
+                        data-content="&lt;p&gt;Makset on kohustatud tasuma kogumispensioni II sambaga vabatahtlikult liitunud või seadusega kohustatud residendist füüsiline isik (kes on esitanud maksete jätkamise avalduse), kui tema elukoht on Eestis või kui ta viibib Eestis 12 järjestikuse kalendrikuu jooksul vähemalt 183 päeva. Makse määraks on 2% &lt;a href='https://www.riigiteataja.ee/akt/125102012014?leiaKehtiv' target='blank_'&gt;kogumispensionide seaduse&lt;/a&gt; § 7 lõikes 1 nimetatud summadelt.&lt;/p&gt;"
+                        aria-label="Kogumispensioni makse" data-bs-original-title="Kogumispensioni makse">
+                    </div>
+                  </td>
+                </tr>
+				<tr>
+				<td colspan="2">
+				<style>
+					input:disabled {
+						display: inline;
+						width: 60px;
+					}
+				</style>
+				  <div>
+					<input class="css-radio disabled visually-hidden" type="radio" id="F1" name="tfx" value="1" disabled="disabled"
+					  onkeyup="outputCalc();drawChart();disable();displayAlert();"
+					  onclick="outputCalc();drawChart();disable(); displayAlert();" checked="checked"
+					  style="display: inline; margin: 3px"><label class="css-label" style="display: inline"
+					  for="F1">Maksuvaba tulu</label>&nbsp;
+					<span id="help5-title" class="handcursor" style="display: inline" disabled="disabled">
+					  <img src="/images/help16.png" class="help" alt="help5" data-html="true" data-toggle="popover"
+						data-placement="bottom"
+						data-content="&lt;ul&gt;&lt;li&gt;&lt;p&gt;aastatuluga &lt;strong&gt;kuni&lt;/strong&gt; &lt;strong&gt;14&nbsp;400&lt;/strong&gt;&nbsp;eurot on maksuvaba tulu &lt;strong&gt;6000&nbsp;eurot aastas&lt;/strong&gt;,&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;aastatulu kasvades &lt;strong&gt;14&nbsp;400&nbsp;eurolt 25&nbsp;200&nbsp;euroni&lt;/strong&gt; väheneb maksuvaba tulu vastavalt valemile &lt;strong&gt;6000 – 6000 ÷ 10 800 × (tulu summa – 14&nbsp;400)&lt;/strong&gt;,&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;aastatuluga &lt;strong&gt;üle 25&nbsp;200 euro&lt;/strong&gt; on maksuvaba tulu &lt;strong&gt;0&lt;/strong&gt;.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;"
+						aria-label="Maksuvababa tulu" data-bs-original-title="Maksuvababa tulu">
+					</span>
+					<span>
+					  <input class="vis input-mini R W120 form-control-plaintext" disabled="disabled" id="taxfree_sum"
+						name="taxfree_sum" value="0.00" type="text"
+						onkeyup="wageCalc();drawChart(); displayAlert();value=minmax(value,year);"
+						onchange="wageCalc();drawChart();"
+						oninput="document.getElementById('tmpdebug').innerHTML=value+','+year;"
+						onclick="this.value = ''; resetAlert();"></span>
+					<span>€ kuus</span>
+					<span id="taxfree_period_row" style="display: table-row" class="row visually-hidden">
+					  <span>
+						<select class="select120 input-small form-control-plaintext disabled" disabled="disabled"
+						  id="taxfree_period" name="taxfree_period" onchange="outputCalc(); drawChart();"
+						  onkeyup="outputCalc(); drawChart();">
+						  <option value="1" id="M" selected="selected">kuus</option>
+						  <option value="12" id="A">aastas</option>
+						</select>
+					  </span>
+					</span>
+				  </div>
+				  <div>
+					<span>
+					  <input class="css-radio disabled visually-hidden" disabled="disabled" type="radio" id="F2" name="tfx"
+						value="2" onclick="outputCalc();drawChart();disable();displayAlert();" style="display: inline">
+					</span>
+					<label class="css-label" style="display: inline; margin: 3px" for="F2">Aastatulu (bruto)</label>
+					<span id="help6-title" class="handcursor" style="display: inline">
+					  <!--sup class="helpicon">&nbsp;?&nbsp;</sup--><img src="/images/help16.png" class="help" alt="help6"
+						data-html="true" data-toggle="popover" data-placement="bottom"
+						data-content="&lt;p&gt;Aastatulu hulka arvestatakse:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;tulumaksuga maksustatav tulu (sh välismaalt saadud tulu)&lt;/li&gt;&lt;li&gt;välismaal saadud töötasu ja muu tasu ning dividend, mida Eestis tulumaksuga ei maksustata&lt;/li&gt;&lt;li&gt;Eesti äriühingult saadud dividend või omakapitali väljamakse, mis on äriühingu tasandil maksustatud&lt;/li&gt;&lt;li&gt;ettevõtlustulu lihtsustatud maksustamise seaduse alusel maksustatud summa, mida on vähendatud ettevõtlustulu maksu sotsiaalmaksu võrra&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Aastatuluna arvestatakse töötasu ja muu tasu, võlaõigusliku lepingu alusel saadud teenustasu, ettevõtlustulu, kasu vara võõrandamisest, &lt;b&gt;dividende&lt;/b&gt;, rendi- ja üüritulu, litsentsitasu, intresse, &lt;b&gt;maksustatavat&lt;/b&gt; pension, toetusi, stipendiume, preemiat, hüvitisi või muud tulu.&lt;br/&gt;&lt;br/&gt;Aastatuluna ei arvestata &lt;b&gt;maksuvabasid&lt;/b&gt; hüvitisi, toetusi ja stipendiume ning maksuvabastusi (nt eluaseme või isiklikus tarbimises oleva vallasasja müük), mida füüsilise isiku tuludeklaratsioonis ei deklareerita.&lt;/p&gt;"
+						aria-label="Aastatulu" data-bs-original-title="Aastatulu">
+					</span>
+					<span>
+					  <input class="disabled form-control-plaintext vis input-mini R W120" id="annual_revenue"
+						name="annual_revenue" value="0.00" type="text" onkeyup="wageCalc();drawChart(); displayAlert();"
+						onchange="wageCalc();drawChart();" onclick="this.value = ''; resetAlert();" disabled="disabled">
+					</span>
+					<span> € kuus</span>
+				  </div>
+						
+				</td>
+				</tr>
+                <tr id="fp2014" style="display: none">
+                  <td>&nbsp;</td>
+                  <td>
+                    <input class="css-radio" type="radio" id="p4" name="fp2014" value="1"
+                      onchange="wageCalc();drawChart();" onclick="wageCalc();drawChart();" checked="checked"><label
+                      class="css-label" for="p4">Ei esitanud maksemäära ajutise tõstmise avaldust</label><br>
+                    <input class="css-radio" type="radio" id="p5" name="fp2014" value="2"
+                      onchange="wageCalc();drawChart();" onclick="wageCalc();drawChart();"><label class="css-label"
+                      for="p5">Esitas 2013. a maksemäära ajutise tõstmise avalduse</label><br>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <br>
+          </div>
+        </div>
+
+        <div class="row">
+        </div>
+
+        <div class="row">
+          <div>
+            <div id="socialtaxalert" class="alert" style="display: none">
+              <span><img src="https://www.kalkulaator.ee/images/alert.png" alt="Alert">
+                Sisestatud summa on väiksem, kui sotsiaalmaksu kuumäär!</span>
+            </div>
+          </div>
+
+          <script>initCharts();</script>
+
+        </div>
+      </div>
+<!-- Siin on teise mooduli lõpp!-->
+<?php }?>
+<!-- Lõpp: KalkulaatorV3M (2)-->
+

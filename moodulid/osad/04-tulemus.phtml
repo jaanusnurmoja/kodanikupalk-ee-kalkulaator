@@ -1,0 +1,362 @@
+<!-- KalkulaatorV3M (3)-->
+
+<?php
+$app = JFactory::getApplication();
+$input = $app->input;
+$fabv = $input->get('view');
+if ($fabv == 'details')
+{
+  ?>
+
+<!-- Siin algab kolmas moodul!-->
+
+      <div class="result-container">
+        <h2 class="toc1 toc-result">Tulemus</h2>
+        <h4 style="display:inline;">Vali, mis tuleb arvutamisel aluseks võtta (mida lugeda 100 protsendiks): </h4>
+        <div class="btn-group radio" style="display:inline;">
+          <input class="btn-check" type="radio" id="pct1" name="percent" value="1" onchange="wageCalc();"
+            onclick="wageCalc();" onkeyup="wageCalc();">
+          <label class="btn" for="pct1">Tööandja kulud (palgafond)</label>
+          <input class="btn-check" type="radio" id="pct2" name="percent" value="2" onchange="wageCalc();"
+            onclick="wageCalc();" onkeyup="wageCalc();" checked="checked">
+          <label class="btn" for="pct2">Brutopalk</label>
+          <input class="btn-check" type="radio" id="pct3" name="percent" value="3" onchange="wageCalc();"
+            onclick="wageCalc();" onkeyup="wageCalc();">
+          <label class="btn" for="pct3">Netotulu</label>
+        </div>
+        <div id="household-note" class="info p-1 mt-2 d-none"></div>
+
+        <div class="row box pt-2 pl-1 calc-head-row">
+          <div class="col">
+            <h3 class="calculators">Näitaja</h3>
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <h5 class="calculators">Senise korra järgi</h5>
+          </div>
+          <div class="col-sm-3 padding-2px R d-none d-sm-block">
+            <h5>Kodanikupalgaga
+              <span id="ubi_header"></span>
+            </h5>
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1 font-weight-bold">
+          <input type="hidden" id="wagefund" value="">
+          <input type="hidden" id="wagefund_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Tööandja kulu kokku (palgafond):
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="wagefund_std"></span>
+            (<span id="wagefund_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="wagefund_ubi"></span>
+            (<span id="wagefund_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1">
+          <input type="hidden" id="socialtax" value="">
+          <input type="hidden" id="socialtax_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Sotsiaalmaks: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="socialtax_std"></span> (<span id="socialtax_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="socialtax_ubi"></span> (<span id="socialtax_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1">
+          <input type="hidden" id="ui_employer" value="">
+          <input type="hidden" id="ui_employer_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Töötuskindlustusmakse (tööandja): </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="ui_employer_std"></span> (<span id="ui_employer_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="ui_employer_ubi"></span> (<span id="ui_employer_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1 font-weight-bold">
+          <input type="hidden" id="grosswage" value="">
+          <input type="hidden" id="grosswage_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Brutopalk:
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="grosswage_std"></span> (<span id="grosswage_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="grosswage_ubi"></span> (<span id="grosswage_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1">
+          <input type="hidden" id="fpp_1" value="">
+          <input type="hidden" id="fpp_1_pct" value="">
+          <div class="col-12 col-sm-6 padding-2px">Kogumispension (II sammas): </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="fpp_1_std"></span> (<span id="fpp_1_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="fpp_1_ubi"></span> (<span id="fpp_1_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1">
+          <input type="hidden" id="ui_employee" value="0.00">
+          <input type="hidden" id="ui_employee_pct" value="0.00">
+          <div class="col-12 col-sm-6 padding-2px">Töötuskindlustusmakse (töötaja): </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="ui_employee_std">0.00</span> (<span id="ui_employee_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="ui_employee_ubi"></span> (<span id="ui_employee_pct_ubi"></span>%)
+          </div>
+        </div>
+        <div class="row box pt-2 pl-1" id="incometax1">
+          <input type="hidden" id="incometax" value="">
+          <input type="hidden" id="incometax_pct" value="6">
+          <div class="col-12 col-sm-6 padding-2px">Tulumaks: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="incometax_std"></span> (<span id="incometax_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="incometax_ubi"></span> (<span id="incometax_pct_ubi"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1" id="cohesiontax">
+          <div class="col-12 col-sm-6 padding-2px">Variant 1 - ühtekuuluvusmaks: <input
+              style="float:right; margin:10px 0 0 0;" type="radio" id="taxscenario" name="taxscenario" value="1"
+              onchange="wageCalc();" onclick="wageCalc();" onkeyup="wageCalc();" checked="checked"></div>
+          <div class="col-6 col-sm-3 padding-2px R">
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="ubicontrib"></span> (<span id="ubicontrib_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1 text-muted font-weight-light" id="incometax2">
+          <div class="col-12 col-sm-6 padding-2px">Variant 2 - üks ja ainus tulumaks: <input
+              style="float:right; margin:10px 0 0 0;" type="radio" id="taxscenario" name="taxscenario" value="2"
+              onchange="wageCalc();" onclick="wageCalc();" onkeyup="wageCalc();"></div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="incometax_std_2"></span> (<span id="incometax_pct_std_2"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-R24px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="flatincometax"></span> (<span id="flatincometax_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1">
+          <div class="col-12 col-sm-6 padding-2px">Neto tööandjalt:
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="netwage"></span> (<span id="netwage_pct"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="worknetwage"></span> (<span id="worknetwage_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1 font-weight-bold">
+          <div class="col-12 col-sm-6 padding-2px">Netotulu kokku: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="netwage_std"></span> (<span id="netwage_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="totalnet"></span> (<span id="totalnet_pct"></span>%) <span id="diff"></span>
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1">
+          <div class="col-12 col-sm-6 padding-2px">Brutomaksukoormus: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="grosstax_std"></span> (<span id="grosstax_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="grosstax"></span> (<span id="grosstax_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1">
+          <div class="col-12 col-sm-6 padding-2px">Riigilt tagasi (kodanikupalk<span id="ubi_label_extra" class="d-none"> ja senise korra järgi lastetoetused</span>): </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="ubi_std"></span> (<span id="ubi_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="ubi"></span> (<span id="ubi_pct"></span>%)
+          </div>
+        </div>
+
+        <div class="row box pt-2 pl-1 font-weight-bold">
+          <div class="col-12 col-sm-6 padding-2px">Tegelik (neto) maksukoormus: </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Senise korra järgi</span>
+            <span id="taxburden_std"></span> (<span id="taxburden_pct_std"></span>%)
+          </div>
+          <div class="col-6 col-sm-3 padding-2px R">
+            <span class="calc-cap">Kodanikupalgaga</span>
+            <span id="taxburden"></span> (<span id="taxburden_pct"></span>%)
+          </div>
+        </div>
+
+
+        <br>
+        <input type="hidden" id="taxes" value="">
+        <input type="hidden" id="localtaxes" value="">
+        <input type="hidden" id="pension" value="">
+        <input type="hidden" id="taxes_ubi" value="">
+        <input type="hidden" id="localtaxes_ubi" value="">
+        <input type="hidden" id="pension_ubi" value="">
+        <input type="hidden" id="ubiamount" value="">
+        <input type="hidden" id="workernet" value="">
+        <input type="hidden" id="netwage_chart" value="">
+      </div>
+      <!--Div that will hold the pie chart-->
+      <div><br></div>
+      <div class="row">
+        <div class="col-sm-12">
+          <h3>Maksutulude jaotumine</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6">
+          <h3>Praegu kehtiva korra järgi: brutopalk <span id="grosswage-chart-std">2126.00</span></h3>
+          <h4>Tööjõukulude kogu ulatuses, st hõlmab ka töötasule lisanduvat sotsiaalmaksu</h4>
+        </div>
+        <div class="col-sm-6">
+          <h3>Kui kodanikupalk kehtiks praegu: kodanikupalk <span id="ubi-chart">517</span>, brutopalk <span
+              id="grosswage-chart"></span> eurot</h3>
+          <p>Kodanikupalk ja tööandjalt saadud netotulu on siin kokku liidetud. Riigipoolne lisa tuuakse eraldi
+            esile siis, kui kodanikupalk ületab maksude summa.</p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6">
+            <div class="text-center chart" id="chart_div"></div>
+        </div>
+        <div class="col-sm-6">
+          <div class="text-center chart" id="chart_div_ubi">
+          </div>
+        </div>
+      </div>
+
+
+    <script>initGrossWageFields();</script>
+
+    <script>
+      jQuery(function () {
+        jQuery('[data-toggle="popover"]').popover()
+      })
+      $('body').on('click vclick', function (e) {
+      });
+    </script>
+
+<div class="calc-container">
+</div>
+<style>
+  .vordle-side {
+    background-color: #1d5bbf;
+    padding: 5px 5px;
+    color: white;
+    border-bottom: 2px solid #0c9;
+    vertical-align: text-bottom !important;
+    position: relative;
+  }
+
+  .vordlelogo {
+    height: 28px;
+    width: 84px
+  }
+
+  .vordlelink,
+  .vordleside,
+  .vordle-head {
+    text-decoration: none !important;
+    color: white !important
+  }
+
+  .vordleside i {
+    color: #00e6ac
+  }
+
+  .vordleside {
+    display: inline-block;
+    background-color: #1d5bbf;
+    margin: 5px 5px 0 0;
+    padding: 7px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+  }
+
+  .vordle-head:hover,
+  .vordleside:hover {
+    text-decoration: underline !important
+  }
+
+  div.vordlelogo,
+  .vlogo {
+    display: inline-block
+  }
+
+  .vlogo-side {
+    display: inline-block;
+  }
+
+  .vordle-desc {
+    padding-top: 10px;
+    text-decoration: none !important;
+    color: white !important;
+    line-height: 0;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+  }
+
+  .vordlelinks_side {
+    display: inline-block;
+    padding: 0 5px 0 0;
+    margin: 5px 0 5px 5px;
+  }
+
+  .vordlelinks_side span {
+    margin-right: 15px
+  }
+
+  .vordle-head {
+    margin: 0 10px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 15px
+  }
+</style>
+
+<div class="c" style="widh:80%">
+</div>
+<script>document.addEventListener('DOMContentLoaded', clickDefaultInputMode);</script>
+
+<!-- Kolmanda mooduli lõpp -->
+
+<?php }?>
+<!-- Lõpp: KalkulaatorV3M (3)-->
+
