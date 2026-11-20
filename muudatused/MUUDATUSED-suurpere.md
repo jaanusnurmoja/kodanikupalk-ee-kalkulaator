@@ -14,9 +14,12 @@ Diff: `muudatused/suurpere.diff`.
 
 ## 2. Suurperetoetus säilib, kui lapsetoetuste kärbe pole märgitud
 
-- `isLargeFamilyBenefitKept()` (`getFamilyBenefitCutBoxes()` kogub kõik märkeruudud, mille id algab
-  `child_value_eur_`): suurperetoetus säilib, kui ükski neist **ei ole `checked`**. Kui selliseid märkeruute lehel pole
-  (nt aasta lähteandmetes pole kärpekohta), käitub kalkulaator nagu varem.
+- `isLargeFamilyBenefitKept()`: suurperetoetus säilib, kui perekonna kärbe märkeruut **ei ole `checked`**.
+  `getFamilyBenefitCutBoxes()` valib märkeruudu kahe tingimusega samas tr-is: märkeruudu id algab
+  `child_value_eur_` **ja** väli `ubi_cost_cut_opt_values___opt_name_ro_<nr>` on `1`
+  (`FAMILY_BENEFIT_CUT_OPT_NAME`). Ainult prefiks ei piisa, sest `ubiCostReducers` annab `child_` prefiksi
+  igale reale, mille nimi sisaldab "Pere" (nt vanemahüvitis). Kui sobivat märkeruutu lehel pole
+  (nt aasta lähteandmetes pole kärpekohta või `opt_name_ro_<nr>` puudub), käitub kalkulaator nagu varem.
 - `readHousehold` lisab leibkonnale väljad `largeKept` (säilinud suurperetoetus kuus) ja
   `ubiExtra = childUbi + largeKept` (riigilt laekuv raha lisaks täiskasvanute kodanikupalgale).
 - `ubiExtra` kasutatakse kõikjal, kus varem lisati kodanikupalga variandile `childUbi`:
@@ -35,12 +38,15 @@ Diff: `muudatused/suurpere.diff`.
 | 3 last, kärbe märkimata | netotulu 2197,60; Riigilt tagasi 1200 | 2647,60; 1650 (+450 suurperetoetus) |
 | 7 last, kärbe märkimata | – | +650 (7+ last) |
 | 3 last, lapse summa 150, kärbe märkimata | silt "Neto: KdP 300 €" | silt + "(laps 150 €)", +450 |
+| 3 last, perekonna kärbe märkimata, **vanemahüvitise märkeruut märgitud** | – | suurperetoetus säilib (+450) |
+| 3 last, perekonna kärbe märgitud, vanemahüvitis märkimata | – | ei säili |
 
 ## Teadlikud piirid / hiljem lahendada
 
 - Lapsetoetuste ja suurperetoetuse kärbete eraldi näitamine/valimine: jäetud hilisemaks (autori otsus).
-  Praegu on need Fabriku kärpeloetelus ühes reas; kui loetelus on mitu `child_value_eur_*` märkeruutu, säilib
-  suurperetoetus ainult siis, kui **kõik** on märkimata.
+  Praegu on need Fabriku kärpeloetelus ühes reas ("Peretoetused: kõik asendatavad, v.a. van. hüv.").
+  Vanemahüvitise (ja teiste `opt_name` ≠ 1) märkeruudud ei mõjuta suurperetoetuse säilimist. Kui `opt_name` = 1
+  on mitmel real, säilib suurperetoetus ainult siis, kui **kõik** need märkeruudud on märkimata.
 - Märkeruudu seis loetakse `checked` järgi. Kui sihtrühm "lapsed" on maha võetud, on märkeruut keelatud
   (`disabled`), kuid selle `checked` jääb alles: valikulise kärbe korral (vaikimisi märkimata) säilib suurperetoetus
   siis ka ilma laste kodanikupalgata; kohustusliku (vaikimisi märgitud) kärbe korral mitte.

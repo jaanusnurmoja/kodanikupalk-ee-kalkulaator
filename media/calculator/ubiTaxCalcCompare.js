@@ -610,18 +610,29 @@ function isChildGroupTargeted() {
 
 /*
   Suurperetoetuse säilimine kodanikupalga korra korral.
-  Fabriku kärpekohtade loetelus on lapsetoetused ja suurperetoetused koos ühes reas; ubiCostReducers
-  annab selle märkeruudule id "child_value_eur_<nr>" (nimi sisaldab "Pere"). Kui see kärbe pole märgitud,
-  siis lapsetoetusi ja suurperetoetusi ei kärbita ja suurperetoetus säilib: see lisatakse kodanikupalga
-  variandi netotulule ja riigilt laekuva raha hulka (readHousehold: hh.largeKept).
+  Fabriku kärpekohtade loetelus on lapsetoetused ja suurperetoetused koos ühes reas ("Peretoetused: kõik
+  asendatavad, v.a. van. hüv."). ubiCostReducers annab selle rea märkeruudule id "child_value_eur_<nr>"; sama
+  prefiksi saavad aga ka teised "Pere"-nimelised read (nt vanemahüvitis), seega ainult prefiksi järgi ei piisa.
+  Õige rea tunneb ära samas tr-is oleva välja ubi_cost_cut_opt_values___opt_name_ro_<nr> järgi: selle
+  sisu peab olema FAMILY_BENEFIT_CUT_OPT_NAME (1).
+  Kui see kärbe pole märgitud, siis lapsetoetusi ja suurperetoetusi ei kärbita ja suurperetoetus säilib: see
+  lisatakse kodanikupalga variandi netotulule ja riigilt laekuva raha hulka (readHousehold: hh.largeKept).
   Märkeruudu seis loetakse `checked` järgi (ka siis, kui sihtrühma "lapsed" äravõtmine on selle keelanud).
   Kui sellist märkeruutu lehel pole (nt aasta lähteandmetes pole kärpekohta), käitutakse nagu varem: ei säili.
 */
+var FAMILY_BENEFIT_CUT_OPT_NAME = 1;
+
 function getFamilyBenefitCutBoxes() {
   var boxes = [];
+  var prefix = "child_value_eur_";
   var all = document.getElementsByName("reductionValue");
   for (var i = 0; i < all.length; i++) {
-    if (all[i].id.indexOf("child_value_eur_") === 0) boxes.push(all[i]);
+    var id = all[i].id;
+    if (id.indexOf(prefix) !== 0) continue;
+    var optName = byId("ubi_cost_cut_opt_values___opt_name_ro_" + id.slice(prefix.length));
+    if (optName !== null && Number(optName.innerHTML.replace(/<[^>]*>/g, "").trim()) === FAMILY_BENEFIT_CUT_OPT_NAME) {
+      boxes.push(all[i]);
+    }
   }
   return boxes;
 }
@@ -1781,7 +1792,8 @@ function initializeCalculator() {
  *     2. Brutopalk       = tööandjalt kättesaadav neto + mahaarvamised
  *                          (variant 1: ühtekuuluvusmaks + tulumaks; variant 2: ühtlane tulumaks)
  *     3. Neto: KdP <summa> €  = tööandjalt kättesaadav neto + vanemate ja laste kodanikupalk
- *                               + suurperetoetus, kui lapsetoetuste kärbe (child_value_eur_<nr>) pole märgitud.
+ *                               + suurperetoetus, kui lapsetoetuste kärbe (child_value_eur_<nr> real, mille
+ *                               opt_name_ro_<nr> = 1) pole märgitud.
  *                               Silt: "Neto: KdP 600 €"; kui lapse summa erineb täiskasvanu omast, teisel real
  *                               "(laps 300 €)" (vt netUbiLabel).
  *     4. Neto: <aasta>        = tööandjalt kättesaadav neto + senise korra järgi lastele makstav raha
