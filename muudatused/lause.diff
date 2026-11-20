@@ -1,0 +1,205 @@
+diff --git a/media/calculator/ubiTaxCalcCompare.js b/media/calculator/ubiTaxCalcCompare.js
+index b81d7d8..029fd70 100644
+--- a/media/calculator/ubiTaxCalcCompare.js
++++ b/media/calculator/ubiTaxCalcCompare.js
+@@ -15,6 +15,8 @@
+  *   8. displayAlert, outputCalc
+  *   9. Diagrammid ja "sama suured kulud" lause
+  *  10. Leibkonna kuise sissetuleku diagramm (moodul "KalkulaatorV3M (4)"; kutsutakse wageCalc()-ist)
++ *  11. Tulemuse lause ("see leibkond saab kodanikupalgaga X € võrra rohkem"; element #result-sentence
++ *      diagrammimoodulis; kutsutakse wageCalc()-ist)
+  *
+  * HTML-i käsitlejad (onclick="outputCalc();..." jms) kutsuvad neid funktsioone
+  * nimepidi, seega kõik avalikud nimed on säilitatud.
+@@ -1504,6 +1506,8 @@ function wageCalc() {
+   var chartModel = buildFamilyChartModel(c);
+   applyHousehold(c);
+   renderFamilyChart(chartModel);
++  // Lause tulemuse kohta loeb tabeli spane, kuhu applyHousehold on leibkonna väärtused juba kirjutanud. Vt 11. osa.
++  renderResultSentence(c);
+ }
+ 
+ 
+@@ -2197,3 +2201,149 @@ function initializeCalculator() {
+   window.buildFamilyChartModel = buildFamilyChartModel;
+   window.renderFamilyChart = renderFamilyChart;
+ })();
++
++
++/* ---------------------------------------------------------------------------
++ * 11. TULEMUSE LAUSE ("see leibkond saab kodanikupalgaga X € võrra rohkem")
++ *     (element #result-sentence diagrammimoodulis "KalkulaatorV3M (diagramm)"; kutsutakse wageCalc()-ist)
++ *
++ *   Lause võtab numbrid tulemustabelist PÄRAST leibkonna ülekirjutust (applyHousehold), st samad
++ *   leibkonna kuusummad, mida kasutaja tabelis näeb:
++ *     - brutopalga ja tööandja kulu režiimis: rea "Netotulu kokku" kodanikupalgaga ja senise korra
++ *       järgi väärtuste vahe;
++ *     - netotulu režiimis (input_3) on täiskasvanute neto mõlemas süsteemis sama (sisestatud summa),
++ *       seega ei oleks neto vahe sisuline. Siis võrreldakse tööandja kulu (palgafondi) ja laste raha.
++ *   Lause EI kirjuta ühtegi arvutuse välja; ta ainult loeb neid. Kui lehel pole elementi
++ *   #result-sentence (moodulit pole lisatud), ei juhtu midagi. Kui arvutuse tulemus pole arv
++ *   (tühi sisend, "NaN"), lause peidetakse.
++ *   Sõnastus on TEXT-objektis allpool: muuda seal. Globaalseks tehakse ainult üks nimi.
++ * ------------------------------------------------------------------------- */
++(function () {
++  "use strict";
++
++  // {household} = leibkonna kirjeldus sulgudes, {amount} = summa (läheb paksu kirja).
++  var TEXT = {
++    adults: ["1 täiskasvanu", "2 täiskasvanut"],
++    child: "1 laps",
++    children: "{n} last",
++    // sisendi nimetus leibkonna kirjelduses (c.in1 / c.in2 / c.in3)
++    wageWord: { 1: "tööandja kulu", 2: "brutopalk", 3: "netotulu" },
++
++    // brutopalga ja tööandja kulu režiim: võrreldakse leibkonna netotulu
++    more: "See leibkond ({household}) saab kodanikupalgaga kuus {amount} võrra rohkem kui senise korra järgi.",
++    less: "See leibkond ({household}) saab kodanikupalgaga kuus {amount} võrra vähem kui senise korra järgi.",
++    same: "See leibkond ({household}) saab kodanikupalgaga kuus sama palju kui senise korra järgi.",
++
++    // netotulu režiim: täiskasvanute neto on sama, võrreldakse tööandja kulu
++    costLess: "Selle leibkonna ({household}) netotulu tagamiseks kulutab tööandja kodanikupalgaga kuus {amount} võrra vähem kui senise korra järgi.",
++    costMore: "Selle leibkonna ({household}) netotulu tagamiseks kulutab tööandja kodanikupalgaga kuus {amount} võrra rohkem kui senise korra järgi.",
++    costSame: "Selle leibkonna ({household}) netotulu tagamiseks kulutab tööandja kodanikupalgaga sama palju kui senise korra järgi.",
++    // netotulu režiim, lapsed: lisalause
++    kidsMore: " Laste raha on kodanikupalgaga {amount} võrra suurem kui senise korra järgi.",
++    kidsLess: " Laste raha on kodanikupalgaga {amount} võrra väiksem kui senise korra järgi.",
++  };
++  var TONES = ["is-more", "is-less", "is-same", "is-info"];
++
++  var lastKey = null;
++
++  // Tabeli span -> arv (NaN, kui tühi või mittearvuline)
++  function spanValue(id) {
++    var e = document.getElementById(id);
++    return e === null ? NaN : parseFloat(e.innerHTML);
++  }
++
++  function cents(v) {
++    return Math.round(v * 100) / 100;
++  }
++
++  // Summa eesti kirjaviisis: tuhandete eraldaja eraldamatu tühik, koma, lõpu ,00 ära; "1 500" / "312,4" -> "312,40"
++  function eurText(v) {
++    var s = cents(Math.abs(v)).toFixed(2).replace(/\.00$/, "").split(".");
++    var whole = s[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
++    return (v < 0 ? "−" : "") + whole + (s.length > 1 ? "," + s[1] : "") + " €";
++  }
++
++  function esc(s) {
++    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
++  }
++
++  // Leibkonna kirjeldus: "2 täiskasvanut, 3 last, brutopalk 2 × 1 500 €"; null, kui sisestatud summa pole arv
++  function householdText(c, hh) {
++    var sum = parseFloat(c.sum);
++    if (!isFinite(sum)) return null;
++    var parts = [TEXT.adults[hh.adults === 2 ? 1 : 0]];
++    if (hh.children > 0) parts.push(hh.children === 1 ? TEXT.child : TEXT.children.replace("{n}", hh.children));
++    var word = TEXT.wageWord[c.in1 ? 1 : c.in3 ? 3 : 2];
++    parts.push(word + " " + (hh.adults === 2 ? "2 × " : "") + eurText(sum));
++    return parts.join(", ");
++  }
++
++  // Täidab malli: {household} ja {amount}; summa läheb paksu kirja
++  function fill(template, household, amount) {
++    return template
++      .replace("{household}", function () {
++        return esc(household);
++      })
++      .replace("{amount}", function () {
++        return "<strong>" + esc(eurText(amount)) + "</strong>";
++      });
++  }
++
++  // Brutopalga ja tööandja kulu režiim: leibkonna netotulu kodanikupalgaga miinus senise korra järgi
++  function netSentence(household) {
++    var diff = cents(spanValue("totalnet") - spanValue("netwage_std"));
++    if (!isFinite(diff)) return null;
++    if (diff === 0) return { tone: "is-same", html: fill(TEXT.same, household, 0) };
++    return diff > 0
++      ? { tone: "is-more", html: fill(TEXT.more, household, diff) }
++      : { tone: "is-less", html: fill(TEXT.less, household, -diff) };
++  }
++
++  // Netotulu režiim: tööandja kulu (palgafond) ja laste raha. Laste vahe võetakse otse sisenditest,
++  // mitte neto spanidest, et sentide ümardusvahe ei annaks "0,01 € vähem".
++  function costSentence(household, hh) {
++    var cost = cents(spanValue("wagefund_ubi") - spanValue("wagefund_std"));
++    if (!isFinite(cost)) return null;
++    var html;
++    if (cost === 0) html = fill(TEXT.costSame, household, 0);
++    else if (cost < 0) html = fill(TEXT.costLess, household, -cost);
++    else html = fill(TEXT.costMore, household, cost);
++    var kids = cents(hh.childUbi - hh.childStd);
++    if (kids > 0) html += fill(TEXT.kidsMore, household, kids);
++    else if (kids < 0) html += fill(TEXT.kidsLess, household, -kids);
++    return { tone: "is-info", html: html };
++  }
++
++  function buildSentence(c) {
++    var household = householdText(c, c.hh);
++    if (household === null) return null;
++    return c.in3 ? costSentence(household, c.hh) : netSentence(household);
++  }
++
++  /*
++    Kirjutab lause elementi #result-sentence. Arvutus käivitub HTML-i käsitlejatest sageli kaks korda
++    toimingu kohta; kui lause pole muutunud, ei puututa DOM-i (ekraanilugeja ei loe sama lauset uuesti).
++    c = wageCalc() kontekst; kutsutakse pärast applyHousehold()-i.
++  */
++  function renderResultSentence(c) {
++    var box = document.getElementById("result-sentence");
++    if (box === null || !c || !c.hh) return;
++    var result = buildSentence(c);
++    var key = result === null ? "" : result.tone + "|" + result.html;
++    if (key === lastKey) return;
++    lastKey = key;
++    TONES.forEach(function (tone) {
++      box.classList.remove(tone);
++    });
++    if (result === null) {
++      box.innerHTML = "";
++      setHidden(box, true);
++      return;
++    }
++    box.classList.add(result.tone);
++    box.innerHTML = result.html;
++    setHidden(box, false);
++  }
++
++  window.renderResultSentence = renderResultSentence;
++})();
+diff --git a/moodulid/kalkulaator-uus.phtml b/moodulid/kalkulaator-uus.phtml
+index 826020d..1792471 100644
+--- a/moodulid/kalkulaator-uus.phtml
++++ b/moodulid/kalkulaator-uus.phtml
+@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
+       </noscript>
+ 
+ 
+-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261117"></script>
++      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261120"></script>
+ 
+       <script>checkPeople();</script>
+ 
+@@ -555,6 +555,10 @@ if ($fabv == 'details')
+ <!-- Siin algab moodul: leibkonna sissetuleku diagramm (JS: ubiTaxCalcCompare.js, 10. osa) -->
+ 
+ <style>
++  .family-chart-module .result-sentence { margin: 8px 0 12px; padding: 10px 14px; border-left: 5px solid #6c757d; border-radius: 3px; background: #f5f7fa; color: #1f1f1f; font-size: 1.1rem; line-height: 1.4; }
++  .family-chart-module .result-sentence.is-more { border-left-color: #2e7d32; }
++  .family-chart-module .result-sentence.is-less { border-left-color: #b3261e; }
++  .family-chart-module .result-sentence strong { white-space: nowrap; }
+   .family-chart-module .fc-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 12px; font-size: 13px; line-height: 1.3; }
+   .family-chart-module .fc-legend span { display: inline-flex; align-items: center; gap: 6px; }
+   .family-chart-module .fc-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 2px; flex: none; border: 1px solid rgba(0,0,0,.15); }
+@@ -569,6 +573,8 @@ if ($fabv == 'details')
+ 
+ <div class="result-container family-chart-module">
+   <h2 class="toc1 toc-result">Leibkonna ühe kuu sissetulek</h2>
++  <!-- Lause tulemuse kohta (JS: ubiTaxCalcCompare.js, 11. osa); peidetud, kuni on arvutatud -->
++  <p id="result-sentence" class="result-sentence d-none" role="status" aria-live="polite" aria-atomic="true"></p>
+   <p class="small mb-1">Leibkonna kuine sissetulek kalkulaatoris tehtud valiku ja kehtiva (kehtinud) korra järgi. <strong>Summad ümardatud euro täpsusega.</strong> Kui summat pole näha, hõljuta selle nägemiseks hiirt lõigu kohal.</p>
+   <div id="family-chart-legend" class="fc-legend" aria-label="Diagrammi legend"></div>
+   <!--div class="fc-grid">
