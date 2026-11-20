@@ -1,0 +1,219 @@
+diff --git a/media/calculator/ubiTaxCalcCompare.js b/media/calculator/ubiTaxCalcCompare.js
+index 029fd70..8a783ed 100644
+--- a/media/calculator/ubiTaxCalcCompare.js
++++ b/media/calculator/ubiTaxCalcCompare.js
+@@ -602,6 +602,38 @@ function isChildUbiSeparate() {
+   return cb !== null && cb.checked === true;
+ }
+ 
++// Kas lapsed kuuluvad kodanikupalga sihtrühma (sihtrühma märkeruut "child"; ilma märkeruuduta loetakse: jah)
++function isChildGroupTargeted() {
++  var childGroup = byId("child");
++  return childGroup === null || childGroup.checked === true;
++}
++
++/*
++  Suurperetoetuse säilimine kodanikupalga korra korral.
++  Fabriku kärpekohtade loetelus on lapsetoetused ja suurperetoetused koos ühes reas; ubiCostReducers
++  annab selle märkeruudule id "child_value_eur_<nr>" (nimi sisaldab "Pere"). Kui see kärbe pole märgitud,
++  siis lapsetoetusi ja suurperetoetusi ei kärbita ja suurperetoetus säilib: see lisatakse kodanikupalga
++  variandi netotulule ja riigilt laekuva raha hulka (readHousehold: hh.largeKept).
++  Märkeruudu seis loetakse `checked` järgi (ka siis, kui sihtrühma "lapsed" äravõtmine on selle keelanud).
++  Kui sellist märkeruutu lehel pole (nt aasta lähteandmetes pole kärpekohta), käitutakse nagu varem: ei säili.
++*/
++function getFamilyBenefitCutBoxes() {
++  var boxes = [];
++  var all = document.getElementsByName("reductionValue");
++  for (var i = 0; i < all.length; i++) {
++    if (all[i].id.indexOf("child_value_eur_") === 0) boxes.push(all[i]);
++  }
++  return boxes;
++}
++
++function isLargeFamilyBenefitKept() {
++  var boxes = getFamilyBenefitCutBoxes();
++  if (boxes.length === 0) return false;
++  return boxes.every(function (box) {
++    return box.checked !== true;
++  });
++}
++
+ /*
+   Aastane brutovajadus (grossNeed).
+   Eraldi lapse summa korral: (täiskasvanud + pensionärid) * põhisumma + lapsed * lapse summa.
+@@ -1285,13 +1317,13 @@ function writePercents(den) {
+   byId("worknetwage_pct").innerHTML = pct(K * byId("worknetwage").innerHTML, den.mixedUbi);
+   var totalNet = byId("totalnet");
+   var netwage = byId("netwage");
+-  byId("diff").innerHTML = round((K * totalNet.innerHTML + hh.childUbi) / (K * netwage.innerHTML + hh.childStd), 2);
++  byId("diff").innerHTML = round((K * totalNet.innerHTML + hh.ubiExtra) / (K * netwage.innerHTML + hh.childStd), 2);
+   console.log(totalNet.innerHTML + "/" + netwage.innerHTML);
+-  byId("totalnet_pct").innerHTML = pct(K * totalNet.innerHTML + hh.childUbi, den.mixedUbi);
++  byId("totalnet_pct").innerHTML = pct(K * totalNet.innerHTML + hh.ubiExtra, den.mixedUbi);
+   byId("grosstax_pct").innerHTML = pct(K * byId("grosstax").innerHTML, den.mixedUbi);
+-  byId("taxburden_pct").innerHTML = pct(K * byId("taxburden").innerHTML - hh.childUbi, den.mixedUbi);
++  byId("taxburden_pct").innerHTML = pct(K * byId("taxburden").innerHTML - hh.ubiExtra, den.mixedUbi);
+   byId("grosstax_pct_std").innerHTML = pct(K * byId("grosstax_std").innerHTML, den.mixedStd);
+-  byId("ubi_pct").innerHTML = pct(K * byId("ubi").innerHTML + hh.childUbi, den.mixedStd);
++  byId("ubi_pct").innerHTML = pct(K * byId("ubi").innerHTML + hh.ubiExtra, den.mixedStd);
+   // "Riigilt tagasi" std veerg: protsent ainult siis, kui lastele makstakse senise korra järgi midagi (muidu tühi, nagu varem)
+   byId("ubi_pct_std").innerHTML = hh.childStd > 0 ? pct(hh.childStd, den.mixedStd) : "";
+   byId("taxburden_pct_std").innerHTML = pct(K * getFieldFloatValue("taxburden_std") - hh.childStd, den.mixedStd);
+@@ -1330,7 +1362,7 @@ function calcPercentages(c) {
+   if (byId("pct3").checked === true) {
+     // Ajalugu: kodanikupalga ja segaväljade alus oli enne netwage, nüüd totalNet (töötaja kogu neto).
+     // Leibkonnas on alus kogu leibkonna neto: tööandjalt saadu + laste raha.
+-    var totalNetValue = K * byId("totalnet").innerHTML + hh.childUbi;
++    var totalNetValue = K * byId("totalnet").innerHTML + hh.ubiExtra;
+     writePercents({
+       std: K * byId("netwage").innerHTML + hh.childStd,
+       ubi: totalNetValue,
+@@ -1351,7 +1383,8 @@ function calcPercentages(c) {
+  *    kirjutab applyHousehold tabeli eurod üle:
+  *      - eurod * täiskasvanute arv (1 või 2; mõlemal sama tulu)
+  *      - Netotulu kokku, senise korra järgi: + lastetoetus ja suurpere toetus (CHILD_BENEFITS)
+- *      - Netotulu kokku, kodanikupalgaga: + laste kodanikupalk (laste arv * lapse summa)
++ *      - Netotulu kokku, kodanikupalgaga: + laste kodanikupalk (laste arv * lapse summa) ja säilinud
++ *        suurperetoetus (kui lapsetoetuste kärbe pole märgitud, vt isLargeFamilyBenefitKept)
+  *      - "Riigilt tagasi" ja "Tegelik (neto) maksukoormus" ridadel samad lisandused
+  *    Üks täiskasvanu ja 0 last (vaikimisi): tabelit ei muudeta.
+  *    Diagrammid jäävad ühe täiskasvanu kohta (nende väärtused salvestab calcChartValues).
+@@ -1387,16 +1420,19 @@ function readHousehold(c) {
+     childUbiOn: false, // kas lapsed kuuluvad kodanikupalga sihtrühma (märkeruut "child")
+     childUbiEach: 0, // kodanikupalk ühele lapsele kuus
+     childUbi: 0, // laste kodanikupalk kuus kokku
++    largeKept: 0, // kodanikupalga korra korral säilinud suurperetoetus kuus (vt isLargeFamilyBenefitKept)
++    ubiExtra: 0, // laste kodanikupalk + säilinud suurperetoetus: riigilt laekuv raha lisaks täiskasvanute kodanikupalgale
+   };
+   if (children > 0) {
+     var benefits = getChildBenefits(c.year, children);
+     hh.allowance = benefits.allowance;
+     hh.largeFamily = benefits.largeFamily;
+     hh.childStd = benefits.total;
+-    var childGroup = byId("child");
+-    hh.childUbiOn = childGroup === null || childGroup.checked === true;
++    hh.childUbiOn = isChildGroupTargeted();
+     hh.childUbiEach = getChildUbiMonthly(c.ubiPerMonth);
+     hh.childUbi = hh.childUbiOn ? children * hh.childUbiEach : 0;
++    hh.largeKept = hh.largeFamily > 0 && isLargeFamilyBenefitKept() ? hh.largeFamily : 0;
++    hh.ubiExtra = hh.childUbi + hh.largeKept;
+   }
+   return hh;
+ }
+@@ -1442,10 +1478,12 @@ function describeHousehold(hh) {
+     if (hh.largeFamily > 0) text += ", suurperetoetus " + formatEur(hh.largeFamily) + " €";
+     text += ")";
+     if (hh.childUbiOn) {
+-      text += "; kodanikupalgaga " + hh.children + " × " + formatEur(hh.childUbiEach) + " = " + formatEur(hh.childUbi) + " €.";
++      text += "; kodanikupalgaga " + hh.children + " × " + formatEur(hh.childUbiEach) + " = " + formatEur(hh.childUbi) + " €";
+     } else {
+-      text += "; kodanikupalka lastele ei maksta (lapsed pole sihtrühmas).";
++      text += "; kodanikupalka lastele ei maksta (lapsed pole sihtrühmas)";
+     }
++    if (hh.largeKept > 0) text += ", lisaks säilib suurperetoetus " + formatEur(hh.largeKept) + " €";
++    text += ".";
+   }
+   return text;
+ }
+@@ -1466,10 +1504,10 @@ function applyHousehold(c) {
+   // net- ja maksukoormuse read: arvutatakse ühe täiskasvanu väärtustest, enne kui need üle kirjutatakse
+   var net = {
+     netStd: K * spanNumber("netwage_std") + hh.childStd,
+-    totalNet: K * spanNumber("totalnet") + hh.childUbi,
+-    ubi: K * spanNumber("ubi") + hh.childUbi,
++    totalNet: K * spanNumber("totalnet") + hh.ubiExtra,
++    ubi: K * spanNumber("ubi") + hh.ubiExtra,
+     burdenStd: K * spanNumber("taxburden_std") - hh.childStd,
+-    burden: K * spanNumber("taxburden") - hh.childUbi,
++    burden: K * spanNumber("taxburden") - hh.ubiExtra,
+   };
+ 
+   savePersonValues();
+@@ -1743,6 +1781,9 @@ function initializeCalculator() {
+  *     2. Brutopalk       = tööandjalt kättesaadav neto + mahaarvamised
+  *                          (variant 1: ühtekuuluvusmaks + tulumaks; variant 2: ühtlane tulumaks)
+  *     3. Neto: KdP <summa> €  = tööandjalt kättesaadav neto + vanemate ja laste kodanikupalk
++ *                               + suurperetoetus, kui lapsetoetuste kärbe (child_value_eur_<nr>) pole märgitud.
++ *                               Silt: "Neto: KdP 600 €"; kui lapse summa erineb täiskasvanu omast, teisel real
++ *                               "(laps 300 €)" (vt netUbiLabel).
+  *     4. Neto: <aasta>        = tööandjalt kättesaadav neto + senise korra järgi lastele makstav raha
+  *                               (lapsetoetus ja lasterikka pere toetus, vt CHILD_BENEFITS)
+  *   "Netotulu" sisendirežiimis (input_3) on brutopalk senise korra ja kodanikupalga korral erinev;
+@@ -1931,6 +1972,18 @@ function initializeCalculator() {
+     return makeBar(label, segs);
+   }
+ 
++  /*
++    Kodanikupalga neto tulba silt.
++    Kõigile ühesugune summa või ainult täiskasvanud sihtrühmas: "Neto: KdP 600 €".
++    Lapse summa erineb täiskasvanu omast: "Neto: KdP 600 €" ja teisel real "(laps 300 €)".
++  */
++  function netUbiLabel(hh, ubiMonthly) {
++    var label = "Neto: KdP " + eurText(ubiMonthly);
++    var childDiffers =
++      hh.children > 0 && hh.childUbiOn && isChildUbiSeparate() && cents(hh.childUbiEach) !== cents(ubiMonthly);
++    return childDiffers ? label + "\n(laps " + eurText(hh.childUbiEach) + ")" : label;
++  }
++
+   // Leibkonna kirjeldus diagrammi vasakul
+   function describeHouseholdChart(c, hh, scenario) {
+     var K = hh.adults;
+@@ -1952,6 +2005,9 @@ function initializeCalculator() {
+     if (hh.children > 0 && !hh.childUbiOn) {
+       desc.note = "Lapsed ei kuulu kodanikupalga sihtrühma, seega lastele kodanikupalka ei arvestata.";
+     }
++    if (hh.largeKept > 0) {
++      desc.note += (desc.note ? " " : "") + "Lasterikka pere toetus säilib kodanikupalgaga (lapsetoetuste kärbe pole märgitud).";
++    }
+     return desc;
+   }
+ 
+@@ -1989,14 +2045,15 @@ function initializeCalculator() {
+       bars.push(grossBar("Brutopalk", ubi, K, scenario, true));
+     }
+ 
+-    // Neto kodanikupalgaga: tööandjalt + vanemate kodanikupalk + iga lapse kodanikupalk
++    // Neto kodanikupalgaga: tööandjalt + vanemate kodanikupalk + (säilinud) lasterikka pere toetus + iga lapse kodanikupalk
+     var netUbi = [];
+     addSeg(netUbi, "emp", K * empUbi);
+     addSeg(netUbi, "par", K * ubiMonthly);
++    if (hh.largeKept > 0) addSeg(netUbi, hh.children >= 7 ? "l7" : "l36", hh.largeKept);
+     if (hh.childUbiOn) {
+       for (var i = 0; i < hh.children; i++) addSeg(netUbi, "kid", hh.childUbiEach);
+     }
+-    bars.push(makeBar("Neto: KdP " + eurText(ubiMonthly), netUbi));
++    bars.push(makeBar(netUbiLabel(hh, ubiMonthly), netUbi));
+ 
+     // Neto senise korra järgi: tööandjalt + lasterikka pere toetus + iga lapse lapsetoetus
+     var netStd = [];
+@@ -2062,9 +2119,11 @@ function initializeCalculator() {
+     );
+   }
+ 
+-  // Tulba silt ridadeks (kuni 2); " €" seotakse eelneva numbriga, et summat ei lõhutaks
++  // Tulba silt ridadeks (kuni 2); " €" seotakse eelneva numbriga, et summat ei lõhutaks.
++  // Selgesõnaline reavahetus "\n" (nt "Neto: KdP 600 €\n(laps 300 €)") jagab sildi alati kaheks reaks.
+   function labelLines(label, maxChars) {
+     label = label.replace(/ €/g, "\u00a0€");
++    if (label.indexOf("\n") !== -1) return label.split("\n").slice(0, 2);
+     if (!maxChars || label.length <= maxChars) return [label];
+     var words = label.split(" ");
+     var first = words[0];
+@@ -2131,7 +2190,7 @@ function initializeCalculator() {
+       '<rect width="7" height="7" fill="#8CA3B8"/><rect width="3.5" height="7" fill="#FFC000"/></pattern></defs>';
+     var summary = model.bars
+       .map(function (b) {
+-        return b.label + " " + fmt(b.total);
++        return b.label.replace("\n", " ") + " " + fmt(b.total);
+       })
+       .join(", ");
+     return (
+@@ -2308,7 +2367,7 @@ function initializeCalculator() {
+     if (cost === 0) html = fill(TEXT.costSame, household, 0);
+     else if (cost < 0) html = fill(TEXT.costLess, household, -cost);
+     else html = fill(TEXT.costMore, household, cost);
+-    var kids = cents(hh.childUbi - hh.childStd);
++    var kids = cents(hh.ubiExtra - hh.childStd);
+     if (kids > 0) html += fill(TEXT.kidsMore, household, kids);
+     else if (kids < 0) html += fill(TEXT.kidsLess, household, -kids);
+     return { tone: "is-info", html: html };
