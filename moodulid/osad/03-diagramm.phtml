@@ -25,6 +25,32 @@ if ($fabv == 'details')
   .family-chart-module .fc-note { font-size: 12px; color: #595959; }
   .family-chart-module .fc-chart { flex: 1 1 380px; min-width: 0; }
   .family-chart-module .fc-svg { display: block; width: 100%; height: auto; font-family: inherit; }
+
+  /* Maksumudeli valik: kitsas ekraanil diagrammi kohal kõrvuti nupud, piisavalt laial moodulil (>= 680 px) vasakul veerus
+     üksteise all. Diagramm jääb alati >= 500 px laiaks (JS-is WIDE_MIN_PX), seega ei muutu tema "lai" paigutus:
+     680 - 150 (veerg) - 16 (vahe) = 514 px. Kui veeru laiust või vahet muudad, hoia see summa >= 500 + varu.
+     Ilma @container-toeta brauser jääb kitsa paigutuse peale. */
+  .family-chart-module .fc-wrap { container-type: inline-size; }
+  .family-chart-module .fc-side { margin: 0 0 10px; }
+  .family-chart-module .fc-side-title { margin: 0 0 6px; font-size: 13px; font-weight: 700; }
+  .family-chart-module .fc-models { display: flex; flex-wrap: wrap; gap: 6px; }
+  .family-chart-module .fc-model { position: relative; display: block; flex: 1 1 140px; margin: 0; cursor: pointer; }
+  .family-chart-module .fc-model input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+  .family-chart-module .fc-model-face { display: block; position: relative; padding: 7px 10px 7px 32px; border: 1px solid #b8c0cc; border-radius: 6px; background: #fff; color: #1f1f1f; font-size: 13px; line-height: 1.25; }
+  .family-chart-module .fc-model-face::before { content: ""; position: absolute; left: 10px; top: 9px; width: 14px; height: 14px; box-sizing: border-box; border: 2px solid #6c757d; border-radius: 50%; background: #fff; }
+  .family-chart-module .fc-model-face b { display: block; font-size: 14px; }
+  .family-chart-module .fc-model-face small { display: block; color: #595959; font-size: 12px; }
+  .family-chart-module .fc-model:hover .fc-model-face { border-color: #1f4e79; }
+  .family-chart-module .fc-model input:checked + .fc-model-face { border-color: #1f4e79; background: #e8f0f8; box-shadow: inset 0 0 0 1px #1f4e79; }
+  .family-chart-module .fc-model input:checked + .fc-model-face::before { border-color: #1f4e79; background: radial-gradient(circle, #1f4e79 0 40%, #fff 45%); }
+  .family-chart-module .fc-model input:focus-visible + .fc-model-face { outline: 3px solid #1f4e79; outline-offset: 2px; }
+  @container (min-width: 680px) {
+    .family-chart-module .fc-layout { display: flex; gap: 16px; align-items: flex-start; }
+    .family-chart-module .fc-side { flex: 0 0 150px; margin: 0; }
+    .family-chart-module .fc-main { flex: 1 1 0; min-width: 0; }
+    .family-chart-module .fc-models { flex-direction: column; }
+    .family-chart-module .fc-model { flex: 0 0 auto; }
+  }
 </style>
 
 <div class="result-container family-chart-module">
@@ -32,13 +58,28 @@ if ($fabv == 'details')
   <!-- Lause tulemuse kohta (JS: ubiTaxCalcCompare.js, 11. osa); peidetud, kuni on arvutatud -->
   <p id="result-sentence" class="result-sentence d-none" role="status" aria-live="polite" aria-atomic="true"></p>
   <p class="small mb-1">Leibkonna kuine sissetulek kalkulaatoris tehtud valiku ja kehtiva (kehtinud) korra järgi. <strong>Summad ümardatud euro täpsusega.</strong> Kui summat pole näha, hõljuta selle nägemiseks hiirt lõigu kohal.</p>
-  <div id="family-chart-legend" class="fc-legend" aria-label="Diagrammi legend"></div>
   <!--div class="fc-grid">
     <div id="family-chart-desc" class="fc-desc"></div>
     <div id="family-chart" class="fc-chart"></div>
   </div-->
-  <div id="family-chart" class="fc-chart"></div>
-  <div id="family-chart-desc" class="fc-desc"></div>
+  <div class="fc-wrap">
+    <div class="fc-layout">
+      <!-- Maksumudeli valik (JS: ubiTaxCalcCompare.js, 12. osa). Tegelik valik on mooduli (3) nuppudel name="taxscenario";
+           need nupud peegeldavad seda, seetõttu on neil teine nimi (name="taxscenario_chart"), mitte "taxscenario". -->
+      <div class="fc-side">
+        <div id="fc-model-title" class="fc-side-title">Maksumudel</div>
+        <div class="fc-models" role="radiogroup" aria-labelledby="fc-model-title">
+          <label class="fc-model"><input type="radio" name="taxscenario_chart" value="1" checked="checked" onchange="setTaxScenario(1);"><span class="fc-model-face"><b>Variant 1</b><small>ühtekuuluvusmaks</small></span></label>
+          <label class="fc-model"><input type="radio" name="taxscenario_chart" value="2" onchange="setTaxScenario(2);"><span class="fc-model-face"><b>Variant 2</b><small>üks ja ainus tulumaks</small></span></label>
+        </div>
+      </div>
+      <div class="fc-main">
+        <div id="family-chart-legend" class="fc-legend" aria-label="Diagrammi legend"></div>
+        <div id="family-chart" class="fc-chart"></div>
+        <div id="family-chart-desc" class="fc-desc"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Diagrammi mooduli lõpp -->
