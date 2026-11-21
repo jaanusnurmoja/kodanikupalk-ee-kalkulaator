@@ -388,9 +388,11 @@ function initEurFromBaseData() {
   setEurGross(eur);
 }
 
-function initMedianHint() {
+function initMedianAndMinWageHint() {
   var median = document.getElementById("ubi_model_base_data___median_gross_wage_ro").innerHTML;
   document.getElementById("medianhint").innerHTML = median;
+  var minWage = document.getElementById("ubi_model_base_data___min_wage_ro").innerHTML;
+  document.getElementById("minwagehint").innerHTML = minWage;
 }
 
 // Brutopalga väljade algseis (varem <script onpageshow=...> lehe lõpus)

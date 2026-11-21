@@ -84,16 +84,16 @@
                       onclick="this.value = ''; resetAlert();">&nbsp;€ kuus
                     <br>
                     <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="adults2_x"
-                      name="adults2_x" value="true" onchange="wageCalc();"><label class="chk-label" for="adults2_x"
+                      name="adults2_x" value="true" checked="checked" onchange="wageCalc();"><label class="chk-label" for="adults2_x"
                       style="display: inline" title="Mõlemal täiskasvanul on sama tulu">2 täiskasvanut</label>
                     &nbsp;&nbsp;
                     <label class="chk-label" for="children_count" style="display: inline">Lapsi:</label>
                     <input class="vis input-mini R W60" style="display: inline; width: 60px" type="number" min="0"
-                      step="1" value="0" id="children_count" name="children_count" oninput="wageCalc();"
+                      step="1" value="1" id="children_count" name="children_count" oninput="wageCalc();"
                       onchange="wageCalc();">
-                    <br><small>vaikimisi ilmub siia keskmine brutopalk</small>
-                    <br><small>proovi ka mediaanpalgaga: <span id="medianhint">1800.00</span></small>
-                    <script>initMedianHint();</script>
+                    
+                    <br><small>Vaikimisi ilmub siia keskmine brutopalk. Proovi ka mediaanpalgaga: <span id="medianhint" onclick="document.getElementById('eur').value=this.innerHTML"></span> või miinimumpalgaga: <span id="minwagehint" onclick="document.getElementById('eur').value=this.innerHTML"></span></small>
+                    <script>initMedianAndMinWageHint();</script>
                     <select class="select120 input-small form-control-plaintext visually-hidden" disabled="disabled"
                       id="period" name="period"
                       onclick="toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();"
@@ -129,7 +129,7 @@
                   <td colspan="2">
                     <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox"
                       id="socialtax_x" name="socialtax_x" value="true" onkeyup="outputCalc();drawChart();"
-                      onchange="outputCalc();drawChart();" onclick="outputCalc();drawChart();displayAlert();">
+                      onchange="outputCalc();drawChart();" onclick="outputCalc();drawChart();displayAlert();" checked="checked">
                     <!--div id="minSocialtax" style="display:inline"--><label class="chk-label" id="socialtaxLabel"
                       for="socialtax_x" style="display: inline">Arvesta sotsiaalmaksu min. kuumäära
                       alusel</label>&nbsp;
@@ -163,8 +163,8 @@
                   <td colspan="2">
                     <input class="css-checkbox" type="checkbox" id="ui1_x" name="ui1_x" value="true"
                       style="display: inline; margin: 3px" onkeyup="outputCalc();drawChart();"
-                      onchange="outputCalc();drawChart();" onclick="outputCalc();drawChart();"
-                      checked="checked"><label class="chk-label" id="UIEmployerLabel" for="ui1_x"
+                      onchange="outputCalc();drawChart();" onclick="outputCalc();drawChart();">
+                    <label class="chk-label" id="UIEmployerLabel" for="ui1_x"
                       style="display: inline">Tööandja töötuskindlustusmakse (<span
                         id="ui1">0.8</span>%)</label>&nbsp;
                     <div id="help9-title" class="handcursor" style="display: inline">
@@ -180,8 +180,7 @@
                     <input class="css-checkbox" type="checkbox" id="ui2_x" name="ui2_x" value="true"
                       onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();"
                       onclick="outputCalc();drawChart();" style="display: inline; margin: 3px"><label
-                      class="chk-label" id="UIEmployeeLabel" for="ui2_x" style="display: inline">Töötaja
-                      (kindlustatu) töötuskindlustusmakse (<span id="ui2">1.6</span>%)</label>
+                      class="chk-label" id="UIEmployeeLabel" for="ui2_x" style="display: inline">Üksikisiku töötuskindlustusmakse (<span id="ui2">1.6</span>%)</label>
                   </td>
                 </tr>
                 <tr>
@@ -295,4 +294,3 @@
 <!-- Siin on teise mooduli lõpp!-->
 <?php }?>
 <!-- Lõpp: KalkulaatorV3M (2)-->
-
