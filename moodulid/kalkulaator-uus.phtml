@@ -338,7 +338,7 @@ if ($fabv != 'details') { ?>
                       step="1" value="1" id="children_count" name="children_count" oninput="wageCalc();"
                       onchange="wageCalc();">
                     
-                    <br><small>Vaikimisi ilmub siia keskmine brutopalk. Proovi ka mediaanpalgaga: <span id="medianhint" onclick="document.getElementById('eur').value=this.innerHTML"></span> või miinimumpalgaga: <span id="minwagehint" onclick="document.getElementById('eur').value=this.innerHTML"></span></small>
+                    <br><small>Vaikimisi ilmub siia keskmine brutopalk. Proovi ka mediaanpalgaga: <span id="medianhint" onclick="document.getElementById('eur').value=this.innerHTML;outputCalc();drawChart();"></span> või miinimumpalgaga: <span id="minwagehint" onclick="document.getElementById('eur').value=this.innerHTML;outputCalc();drawChart();"></span></small>
                     <script>initMedianAndMinWageHint();</script>
                     <select class="select120 input-small form-control-plaintext visually-hidden" disabled="disabled"
                       id="period" name="period"
