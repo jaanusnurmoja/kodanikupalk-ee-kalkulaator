@@ -17,6 +17,8 @@
  *  10. Leibkonna kuise sissetuleku diagramm (moodul "KalkulaatorV3M (4)"; kutsutakse wageCalc()-ist)
  *  11. Tulemuse lause ("see leibkond saab kodanikupalgaga X € võrra rohkem"; element #result-sentence
  *      diagrammimoodulis; kutsutakse wageCalc()-ist)
+ *  12. Maksumudeli valik diagrammi juures (variant 1 / 2; nupud name="taxscenario_chart" diagrammimoodulis,
+ *      tegelik valik on mooduli (3) nuppudel name="taxscenario"; kutsutakse wageCalc()-ist)
  *
  * HTML-i käsitlejad (onclick="outputCalc();..." jms) kutsuvad neid funktsioone
  * nimepidi, seega kõik avalikud nimed on säilitatud.
@@ -1584,6 +1586,8 @@ function wageCalc() {
   renderFamilyChart(chartModel);
   // Lause tulemuse kohta loeb tabeli spane, kuhu applyHousehold on leibkonna väärtused juba kirjutanud. Vt 11. osa.
   renderResultSentence(c);
+  // Maksumudeli valik diagrammi juures peegeldab tabeli valikut. Vt 12. osa.
+  syncTaxScenarioButtons();
 }
 
 
@@ -2448,4 +2452,68 @@ function initializeCalculator() {
   }
 
   window.renderResultSentence = renderResultSentence;
+})();
+
+
+/* ---------------------------------------------------------------------------
+ * 12. MAKSUMUDELI VALIK DIAGRAMMI JUURES (variant 1 / variant 2)
+ *     (nupud name="taxscenario_chart" diagrammimoodulis "KalkulaatorV3M (diagramm)"; kutsutakse wageCalc()-ist)
+ *
+ *   Tegelik valik on endiselt mooduli (3) raadionuppudel name="taxscenario": need loevad
+ *   applyTaxScenario(), calcGrossWageUbiFromNet() ja diagramm. Diagrammi nupud valivad ainult sama
+ *   nupu tabelis ja käivitavad wageCalc() (täpselt nagu tabeli nupud), ning wageCalc() peegeldab
+ *   tabeli valiku tagasi diagrammi nuppudesse. Seega on valik alati ühes kohas ja kahes kohas näha.
+ *
+ *   TÄHELEPANU: diagrammi nupud EI TOHI kasutada nime "taxscenario". Mõlemad getElementsByName("taxscenario")
+ *   tsüklid (applyTaxScenario, calcGrossWageUbiFromNet) on kirjutatud nii, et käivitub kõigi mitte-"2 märgitud"
+ *   nuppude haru ja "viimane võidab". See toimib ainult praeguse kahe nupu järjekorra tõttu; kolmas ja neljas
+ *   samanimeline nupp (diagramm on lehel tabelist ees) annaks variandi 2 korral variandi 1 tulemuse.
+ *   Kui lehel pole mooduli (3) nuppe, ei tee diagrammi nupud midagi ja jäävad variandi 1 peale.
+ * ------------------------------------------------------------------------- */
+(function () {
+  "use strict";
+
+  var CHART_BUTTONS = "taxscenario_chart";
+
+  // Märgitud maksustsenaarium mooduli (3) nuppude järgi; null, kui nuppe pole
+  function tableScenario() {
+    var radios = getTaxScenarios();
+    if (radios.length === 0) return null;
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].checked === true) return Number(radios[i].value);
+    }
+    return 1;
+  }
+
+  // Märgib diagrammi nuppudest selle, mille väärtus on value
+  function markChartButtons(value) {
+    var buttons = document.getElementsByName(CHART_BUTTONS);
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].checked = Number(buttons[i].value) === value;
+    }
+  }
+
+  // Diagrammi nupu käsitleja (onchange): vali sama nupp tabelis ja arvuta uuesti
+  function setTaxScenario(value) {
+    var radios = getTaxScenarios();
+    var target = null;
+    for (var i = 0; i < radios.length; i++) {
+      if (Number(radios[i].value) === Number(value)) target = radios[i];
+    }
+    if (target === null) {
+      markChartButtons(tableScenario() || 1); // mooduli (3) nuppe pole: ära valeta
+      return;
+    }
+    target.checked = true;
+    wageCalc();
+  }
+
+  // Peegeldab tabeli valiku diagrammi nuppudesse; kutsutakse wageCalc() lõpust
+  function syncTaxScenarioButtons() {
+    var value = tableScenario();
+    if (value !== null) markChartButtons(value);
+  }
+
+  window.setTaxScenario = setTaxScenario;
+  window.syncTaxScenarioButtons = syncTaxScenarioButtons;
 })();
