@@ -269,4 +269,11 @@ blockquote .blockquote {
 /* Telefon (veerud on juba üksteise all): summaväli ei tohi tabelit ekraanist laiemaks venitada. */
 @media (max-width: 575.98px) {
   .calc-fit-cols input#eur { width: 100%; }
+
+  /* Mahaarvamised ("Arvesta ...") tuleb "Maksustatava tulu" (palgaväli, 2 täiskasvanut, lapsed) ETTE,
+     nii et palgaväli jääb tulemuse lause ja diagrammi lähedale (palgaväli ja lause mahuvad ühele telefoniekraanile).
+     Ainult visuaalne järjekord (flex order): HTML-i järjekord ja ID-d on samad, kalkulaator ei muutu.
+     Alates 576 px (veerud kõrvuti, col-sm-6) järjekorda ei muudeta, arvutivaade on nagu enne.
+     Valija on tahtlikult .calc-fit-cols > .col-R: klassi col-R kasutab ka päismoodul (01-top). */
+  .calc-fit-cols > .col-R { order: -1; }
 }
