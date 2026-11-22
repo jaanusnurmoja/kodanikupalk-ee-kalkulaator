@@ -124,6 +124,15 @@ blockquote .blockquote {
 /* JS loeb sellest, kas vaade on kitsas (0 = arvutivaade, 1 = kitsas vaade) */
 .calc-layout { --calc-narrow: 0; }
 
+/* JS loeb sellest, kas vaade on telefoni laiune (0 = ei, 1 = jah). Selle piiri all peidab
+   calc-mobile.js mahaarvamiste ploki (#calc-deductions) nupu "Näita maksude arvestamise valikuid" taha.
+   Piir (767.98px = Bootstrapi md) on kirjas ainult siin. Tahvlil (768-991 px) on veerud kõrvuti
+   nagu enne. */
+.calc-layout { --calc-phone: 0; }
+@media (max-width: 767.98px) {
+  .calc-layout { --calc-phone: 1; }
+}
+
 /* Vahelehtede riba: arvutivaates alati peidus; kitsas vaates ilmub alles siis,
    kui calc-mobile.js on käivitunud (.calc-js). Ilma JS-ita jäävad veerud lihtsalt üksteise alla. */
 .calc-tabs { display: none; }
@@ -191,7 +200,9 @@ blockquote .blockquote {
   }
 }
 
-/* Lähteandmete ja kärbete peitmise/näitamise nupud (loob calc-mobile.js kitsas vaates) */
+/* Peitmise/näitamise nupud: lähteandmete, kärbete ja maksude arvestamise valikute jaoks
+   (loob calc-mobile.js kitsas vaates). Maksude arvestamise nupuriba (.calc-toggles-tax) on mooduli (2)
+   reas .calc-fit-cols veergude vahel; Bootstrapi .row > * annab talle täislaiuse ja veergude äärise. */
 .calc-toggles {
   display: flex;
   flex-wrap: wrap;
@@ -269,11 +280,4 @@ blockquote .blockquote {
 /* Telefon (veerud on juba üksteise all): summaväli ei tohi tabelit ekraanist laiemaks venitada. */
 @media (max-width: 575.98px) {
   .calc-fit-cols input#eur { width: 100%; }
-
-  /* Mahaarvamised ("Arvesta ...") tuleb "Maksustatava tulu" (palgaväli, 2 täiskasvanut, lapsed) ETTE,
-     nii et palgaväli jääb tulemuse lause ja diagrammi lähedale (palgaväli ja lause mahuvad ühele telefoniekraanile).
-     Ainult visuaalne järjekord (flex order): HTML-i järjekord ja ID-d on samad, kalkulaator ei muutu.
-     Alates 576 px (veerud kõrvuti, col-sm-6) järjekorda ei muudeta, arvutivaade on nagu enne.
-     Valija on tahtlikult .calc-fit-cols > .col-R: klassi col-R kasutab ka päismoodul (01-top). */
-  .calc-fit-cols > .col-R { order: -1; }
 }

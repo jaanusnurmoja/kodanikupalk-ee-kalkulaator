@@ -1,0 +1,232 @@
+diff --git a/media/templates/site/cassiopeia_kalkulaator/css/user.css b/media/templates/site/cassiopeia_kalkulaator/css/user.css
+index eac2b58..d5f72d7 100644
+--- a/media/templates/site/cassiopeia_kalkulaator/css/user.css
++++ b/media/templates/site/cassiopeia_kalkulaator/css/user.css
+@@ -124,6 +124,15 @@ blockquote .blockquote {
+ /* JS loeb sellest, kas vaade on kitsas (0 = arvutivaade, 1 = kitsas vaade) */
+ .calc-layout { --calc-narrow: 0; }
+ 
++/* JS loeb sellest, kas vaade on telefoni laiune (0 = ei, 1 = jah). Selle piiri all peidab
++   calc-mobile.js mahaarvamiste ploki (#calc-deductions) nupu "Näita maksude arvestamise valikuid" taha.
++   Piir (767.98px = Bootstrapi md) on kirjas ainult siin. Tahvlil (768-991 px) on veerud kõrvuti
++   nagu enne. */
++.calc-layout { --calc-phone: 0; }
++@media (max-width: 767.98px) {
++  .calc-layout { --calc-phone: 1; }
++}
++
+ /* Vahelehtede riba: arvutivaates alati peidus; kitsas vaates ilmub alles siis,
+    kui calc-mobile.js on käivitunud (.calc-js). Ilma JS-ita jäävad veerud lihtsalt üksteise alla. */
+ .calc-tabs { display: none; }
+@@ -191,7 +200,9 @@ blockquote .blockquote {
+   }
+ }
+ 
+-/* Lähteandmete ja kärbete peitmise/näitamise nupud (loob calc-mobile.js kitsas vaates) */
++/* Peitmise/näitamise nupud: lähteandmete, kärbete ja maksude arvestamise valikute jaoks
++   (loob calc-mobile.js kitsas vaates). Maksude arvestamise nupuriba (.calc-toggles-tax) on mooduli (2)
++   reas .calc-fit-cols veergude vahel; Bootstrapi .row > * annab talle täislaiuse ja veergude äärise. */
+ .calc-toggles {
+   display: flex;
+   flex-wrap: wrap;
+@@ -269,11 +280,4 @@ blockquote .blockquote {
+ /* Telefon (veerud on juba üksteise all): summaväli ei tohi tabelit ekraanist laiemaks venitada. */
+ @media (max-width: 575.98px) {
+   .calc-fit-cols input#eur { width: 100%; }
+-
+-  /* Mahaarvamised ("Arvesta ...") tuleb "Maksustatava tulu" (palgaväli, 2 täiskasvanut, lapsed) ETTE,
+-     nii et palgaväli jääb tulemuse lause ja diagrammi lähedale (palgaväli ja lause mahuvad ühele telefoniekraanile).
+-     Ainult visuaalne järjekord (flex order): HTML-i järjekord ja ID-d on samad, kalkulaator ei muutu.
+-     Alates 576 px (veerud kõrvuti, col-sm-6) järjekorda ei muudeta, arvutivaade on nagu enne.
+-     Valija on tahtlikult .calc-fit-cols > .col-R: klassi col-R kasutab ka päismoodul (01-top). */
+-  .calc-fit-cols > .col-R { order: -1; }
+ }
+diff --git a/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js b/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js
+index 5654c0c..ecf7263 100644
+--- a/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js
++++ b/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js
+@@ -11,6 +11,8 @@
+  *      Peidetakse klassiga "visually-hidden" (+ atribuut "inert", vt CONFIG): elemendid ja
+  *      nende väärtused jäävad DOM-i alles ja kalkulaatori JS loeb neid nagu enne.
+  *      Midagi ei eemaldata ega tõsteta ümber, ID-d jäävad samaks.
++ *      Sama nupp on ka maksude arvestamise valikutel (mooduli (2) veerg #calc-deductions, "Arvesta ..."),
++ *      aga ainult telefoni laiusel (--calc-phone = 1 css/user.css-is, alla 768 px).
+  *   3. Sektordiagrammid: kitsas vaates joonistatakse need ekraani laiuse järgi
+  *      (kalkulaatori drawPieChart on fikseeritud 360 x 240 px, legend paremal).
+  *
+@@ -31,9 +33,15 @@
+     // Kärpekohtade valik (intro, lisasumma väli ja tabel): nupp "Näita kärpevõimalusi"
+     cutsSelectors: ["#group162"],
+ 
++    // Maksude arvestamise valikud ("Arvesta sotsiaalmaksu ...", maksuvaba tulu jt, mooduli (2) paremast
++    // veerust): nupp "Näita maksude arvestamise valikuid". Ainult telefoni laiusel (alla 768 px).
++    taxSelectors: ["#calc-deductions"],
++
+     // Kas grupp on kitsas vaates lehe avamisel peidus (true) või nähtav (false).
+     // false = kasutaja saab kärpeid/sihtrühmi muuta kohe ja peidab ise.
+-    startCollapsed: { base: true, cuts: true },
++    // NB! tax: true tähendab, et vaikimisi märgitud valikud (nt maksuvaba tulu) mõjutavad tulemust ka siis,
++    // kui kasutaja neid ei näe.
++    startCollapsed: { base: true, cuts: true, tax: true },
+ 
+     // Peidetud grupile lisatakse ka atribuut "inert": klaviatuur (Tab) ei sattu nähtamatutele
+     // märkeruutudele. Väärtused jäävad loetavaks (.value, .checked, .innerHTML).
+@@ -42,7 +50,8 @@
+ 
+     labels: {
+       base: { show: "Näita alusandmeid", hide: "Peida alusandmed" },
+-      cuts: { show: "Näita kärpevõimalusi", hide: "Peida kärpevõimalused" }
++      cuts: { show: "Näita kärpevõimalusi", hide: "Peida kärpevõimalused" },
++      tax: { show: "Näita maksude arvestamise valikuid", hide: "Peida maksude arvestamise valikud" }
+     },
+ 
+     // Sektordiagrammid kitsas vaates (px)
+@@ -55,9 +64,10 @@
+   var tabs = [];
+   var panes = {};
+   var lastNarrow = null;
+-  var toggleBar = null;
+-  var collapsed = { base: CONFIG.startCollapsed.base, cuts: CONFIG.startCollapsed.cuts };
+-  var groups = { base: [], cuts: [] };
++  var toggleBar = null; // lähteandmete ja kärbete nupuriba
++  var taxBar = null; // maksude arvestamise nupuriba (mooduli (2) reas, ainult telefoni laiusel)
++  var collapsed = { base: CONFIG.startCollapsed.base, cuts: CONFIG.startCollapsed.cuts, tax: CONFIG.startCollapsed.tax };
++  var groups = { base: [], cuts: [], tax: [] };
+ 
+   /* -------------------------------------------------------------------------
+    * Abifunktsioonid
+@@ -67,6 +77,11 @@
+     return getComputedStyle(layout).getPropertyValue("--calc-narrow").trim() === "1";
+   }
+ 
++  function isPhone() {
++    // Telefoni laiuse piir on samuti CSS-is (muutuja --calc-phone); telefon on alati ka kitsas vaade
++    return isNarrow() && getComputedStyle(layout).getPropertyValue("--calc-phone").trim() === "1";
++  }
++
+   function findAll(selectors) {
+     var found = [];
+     selectors.forEach(function (selector) {
+@@ -165,7 +180,8 @@
+       }
+       el.setAttribute("data-calc-collapsible", "1"); // märgib, et klassi lisasime meie
+     });
+-    var button = toggleBar && toggleBar.querySelector('[data-calc-toggle="' + kind + '"]');
++    // Nupp võib olla kummalgi ribal (lähteandmete või maksude arvestamise), seepärast otsime kogu paigutusest
++    var button = layout.querySelector('[data-calc-toggle="' + kind + '"]');
+     if (button) {
+       button.setAttribute("aria-expanded", hide ? "false" : "true");
+       button.textContent = hide ? CONFIG.labels[kind].show : CONFIG.labels[kind].hide;
+@@ -211,11 +227,9 @@
+     setCollapsed("cuts", collapsed.cuts);
+   }
+ 
+-  // Arvutivaatesse tagasi: nupud ära, kõik grupid nähtavaks (nagu enne)
+-  function removeToggles() {
+-    if (toggleBar && toggleBar.parentNode) toggleBar.parentNode.removeChild(toggleBar);
+-    toggleBar = null;
+-    groups.base.concat(groups.cuts).forEach(function (el) {
++  // Võtab peidetud gruppidelt meie lisatud klassi ja atribuudid ära (nagu enne)
++  function restoreGroups(list) {
++    list.forEach(function (el) {
+       if (el.getAttribute("data-calc-collapsible") !== "1") return;
+       el.classList.remove(HIDE_CLASS);
+       el.removeAttribute("inert");
+@@ -223,6 +237,41 @@
+     });
+   }
+ 
++  // Arvutivaatesse tagasi: nupud ära, kõik grupid nähtavaks (nagu enne)
++  function removeToggles() {
++    if (toggleBar && toggleBar.parentNode) toggleBar.parentNode.removeChild(toggleBar);
++    toggleBar = null;
++    restoreGroups(groups.base.concat(groups.cuts));
++  }
++
++  // Maksude arvestamise valikud: nupp läheb veerust #calc-deductions vahetult ette. Veerg on mooduli (2)
++  // reas .calc-fit-cols, seega on nupuriba selle rea lapsena veergude vahel (täislaiuses).
++  // Lehel mooduli (2) pole (puudub #calc-deductions): ei tee midagi.
++  function buildTaxToggle() {
++    if (taxBar) return;
++    groups.tax = findAll(CONFIG.taxSelectors);
++    if (!groups.tax.length) return;
++    taxBar = document.createElement("div");
++    taxBar.className = "calc-toggles calc-toggles-tax";
++    taxBar.setAttribute("data-calc-generated", "1");
++    taxBar.appendChild(makeToggleButton("tax"));
++    groups.tax[0].parentNode.insertBefore(taxBar, groups.tax[0]);
++    setCollapsed("tax", collapsed.tax); // kasutaja varasem valik säilib ka pärast ekraani pööramist
++  }
++
++  function removeTaxToggle() {
++    if (!taxBar) return;
++    if (taxBar.parentNode) taxBar.parentNode.removeChild(taxBar);
++    taxBar = null;
++    restoreGroups(groups.tax);
++  }
++
++  // Telefoni laiusel nupp olemas, muidu (tahvel, arvutivaade) ploki sisu nähtav nagu enne
++  function syncTaxToggle() {
++    if (isPhone()) buildTaxToggle();
++    else removeTaxToggle();
++  }
++
+   /* -------------------------------------------------------------------------
+    * 3. Sektordiagrammid kitsas vaates
+    *    Kalkulaatori drawPieChart (ubiTaxCalcCompare.js) joonistab alati 360 x 240 px ja legend
+@@ -298,9 +347,11 @@
+       window.requestAnimationFrame(function () {
+         pending = false;
+         sync();
++        syncTaxToggle();
+       });
+     });
+     sync();
++    syncTaxToggle();
+   }
+ 
+   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+diff --git a/moodulid/kalkulaator-uus.phtml b/moodulid/kalkulaator-uus.phtml
+index e82ba28..9149b0e 100644
+--- a/moodulid/kalkulaator-uus.phtml
++++ b/moodulid/kalkulaator-uus.phtml
+@@ -263,7 +263,7 @@ if ($fabv != 'details') { ?>
+         <script>initUbiModel();</script>
+ 
+         <div class="row calc-fit-cols">
+-          <div class="col-sm-6 col-L">
++          <div class="col-sm-6 col-L" id="calc-income">
+             <table class="table-calc">
+               <tbody>
+                 <tr>
+@@ -363,7 +363,7 @@ if ($fabv != 'details') { ?>
+             </table>
+             <br>
+           </div>
+-          <div class="col-sm-6 col-R">
++          <div class="col-sm-6 col-R" id="calc-deductions">
+             <table class="table-calc">
+               <tbody>
+                 <tr>
+diff --git a/moodulid/osad/02-sisend.phtml b/moodulid/osad/02-sisend.phtml
+index dbc7c47..d8201d9 100644
+--- a/moodulid/osad/02-sisend.phtml
++++ b/moodulid/osad/02-sisend.phtml
+@@ -17,7 +17,7 @@
+         <script>initUbiModel();</script>
+ 
+         <div class="row calc-fit-cols">
+-          <div class="col-sm-6 col-L">
++          <div class="col-sm-6 col-L" id="calc-income">
+             <table class="table-calc">
+               <tbody>
+                 <tr>
+@@ -117,7 +117,7 @@
+             </table>
+             <br>
+           </div>
+-          <div class="col-sm-6 col-R">
++          <div class="col-sm-6 col-R" id="calc-deductions">
+             <table class="table-calc">
+               <tbody>
+                 <tr>
