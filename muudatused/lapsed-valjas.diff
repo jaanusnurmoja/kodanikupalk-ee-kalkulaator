@@ -1,0 +1,132 @@
+diff --git a/media/calculator/ubiTaxCalcCompare.js b/media/calculator/ubiTaxCalcCompare.js
+index 9373bd5..4559ac4 100644
+--- a/media/calculator/ubiTaxCalcCompare.js
++++ b/media/calculator/ubiTaxCalcCompare.js
+@@ -459,6 +459,7 @@ function clickDefaultInputMode() {
+ 
+ // Sihtrühma märkeruut muutus: uuenda inimeste arvu ja sellest sõltuvaid kärbeid
+ function calcPeople(ch) {
++  syncChildUbiAvailability();
+   if (ch.type == "checkbox") {
+     if (ch.checked === true) {
+       peopleTotal += parseInt(ch.value);
+@@ -612,7 +613,30 @@ function countTargetGroups() {
+ // Kas lastele on määratud eraldi kodanikupalga summa (märkeruut sees ja väli nähtav)
+ function isChildUbiSeparate() {
+   var cb = byId("ubi_child_x");
+-  return cb !== null && cb.checked === true;
++  return cb !== null && cb.checked === true && isChildGroupTargeted();
++}
++
++/*
++  Kui lapsed pole kodanikupalga sihtrühmas, jätkub laste osas senine perehüvitiste süsteem ja lapse eraldi summal
++  pole mõtet: märkeruut "Lastele teises suuruses" ja lapse summa väli lülitatakse välja. Märkeruudu seis ja
++  sisestatud summa jäävad alles ning kehtivad uuesti, kui lapsed on taas sihtrühmas.
++*/
++function syncChildUbiAvailability() {
++  var off = !isChildGroupTargeted();
++  var hint = "Lapsed pole kodanikupalga sihtrühmas, neile jätkub senine perehüvitiste süsteem";
++  var cb = byId("ubi_child_x");
++  var field = byId("ubi-amount-child");
++  var label = document.querySelector('label[for="ubi_child_x"]');
++  if (cb !== null) {
++    cb.disabled = off;
++    cb.title = off ? hint : "";
++  }
++  if (field !== null) field.disabled = off;
++  if (label !== null) {
++    label.title = off ? hint : "";
++    label.style.opacity = off ? "0.5" : "";
++  }
++  updateAltSentenceVisibility();
+ }
+ 
+ // Kas lapsed kuuluvad kodanikupalga sihtrühma (sihtrühma märkeruut "child"; ilma märkeruuduta loetakse: jah)
+@@ -645,7 +669,8 @@ function getAdultUbiMonthly(ubiPerMonth) {
+   sisu peab olema FAMILY_BENEFIT_CUT_OPT_NAME (1).
+   Kui see kärbe pole märgitud, siis lapsetoetusi ja suurperetoetusi ei kärbita ja suurperetoetus säilib: see
+   lisatakse kodanikupalga variandi netotulule ja riigilt laekuva raha hulka (readHousehold: hh.largeKept).
+-  Märkeruudu seis loetakse `checked` järgi (ka siis, kui sihtrühma "lapsed" äravõtmine on selle keelanud).
++  Märkeruudu seis loetakse `checked` järgi. Kui sihtrühm "lapsed" on maha võetud, on kärpekohad välja lülitatud
++  ja senised perehüvitised säilivad täies mahus (readHousehold: hh.keepsOldBenefits); seda funktsiooni siis ei vaadata.
+   Kui sellist märkeruutu lehel pole (nt aasta lähteandmetes pole kärpekohta), käitutakse nagu varem: ei säili.
+ */
+ var FAMILY_BENEFIT_CUT_OPT_NAME = 1;
+@@ -1460,8 +1485,10 @@ function readHousehold(c) {
+     childUbiOn: false, // kas lapsed kuuluvad kodanikupalga sihtrühma (märkeruut "child")
+     childUbiEach: 0, // kodanikupalk ühele lapsele kuus
+     childUbi: 0, // laste kodanikupalk kuus kokku
++    keepsOldBenefits: false, // lapsed pole sihtrühmas: senine perehüvitiste süsteem jätkub (lapsetoetus + suurperetoetus)
++    allowanceKept: 0, // kodanikupalga korra korral säilinud lapsetoetus kuus (ainult kui keepsOldBenefits)
+     largeKept: 0, // kodanikupalga korra korral säilinud suurperetoetus kuus (vt isLargeFamilyBenefitKept)
+-    ubiExtra: 0, // laste kodanikupalk + säilinud suurperetoetus: riigilt laekuv raha lisaks täiskasvanute kodanikupalgale
++    ubiExtra: 0, // laste kodanikupalk + säilinud perehüvitised: riigilt laekuv raha lisaks täiskasvanute kodanikupalgale
+   };
+   if (children > 0) {
+     var benefits = getChildBenefits(c.year, children);
+@@ -1471,8 +1498,15 @@ function readHousehold(c) {
+     hh.childUbiOn = isChildGroupTargeted();
+     hh.childUbiEach = getChildUbiMonthly(c.ubiPerMonth);
+     hh.childUbi = hh.childUbiOn ? children * hh.childUbiEach : 0;
+-    hh.largeKept = hh.largeFamily > 0 && isLargeFamilyBenefitKept() ? hh.largeFamily : 0;
+-    hh.ubiExtra = hh.childUbi + hh.largeKept;
++    /*
++      Lapsed pole sihtrühmas: nende senised perehüvitised on kärpekohtadena välja lülitatud (toggleCostReducers),
++      seega neid ei kärbita ja kodanikupalga korral jätkub laste osas senine süsteem: lapsetoetus ja suurperetoetus
++      säilivad täies mahus. Muidu säilib suurperetoetus ainult siis, kui lapsetoetuste kärbe pole märgitud.
++    */
++    hh.keepsOldBenefits = !hh.childUbiOn;
++    hh.allowanceKept = hh.keepsOldBenefits ? hh.allowance : 0;
++    hh.largeKept = hh.largeFamily > 0 && (hh.keepsOldBenefits || isLargeFamilyBenefitKept()) ? hh.largeFamily : 0;
++    hh.ubiExtra = hh.childUbi + hh.allowanceKept + hh.largeKept;
+   }
+   return hh;
+ }
+@@ -1519,10 +1553,10 @@ function describeHousehold(hh) {
+     text += ")";
+     if (hh.childUbiOn) {
+       text += "; kodanikupalgaga " + hh.children + " × " + formatEur(hh.childUbiEach) + " = " + formatEur(hh.childUbi) + " €";
++      if (hh.largeKept > 0) text += ", lisaks säilib suurperetoetus " + formatEur(hh.largeKept) + " €";
+     } else {
+-      text += "; kodanikupalka lastele ei maksta (lapsed pole sihtrühmas)";
++      text += "; kodanikupalka lastele ei maksta (lapsed pole sihtrühmas), seega senised perehüvitised säilivad";
+     }
+-    if (hh.largeKept > 0) text += ", lisaks säilib suurperetoetus " + formatEur(hh.largeKept) + " €";
+     text += ".";
+   }
+   return text;
+@@ -2049,10 +2083,9 @@ function initializeCalculator() {
+     } else if (hh.children > 0 && hh.childUbiOn && isChildUbiSeparate()) {
+       desc.model += ", lapse kodanikupalk " + eurText(hh.childUbiEach);
+     }
+-    if (hh.children > 0 && !hh.childUbiOn) {
+-      desc.note = "Lapsed ei kuulu kodanikupalga sihtrühma, seega lastele kodanikupalka ei arvestata.";
+-    }
+-    if (hh.largeKept > 0) {
++    if (hh.keepsOldBenefits) {
++      desc.note = "Lapsed ei kuulu kodanikupalga sihtrühma, seega jätkub neile senine perehüvitiste süsteem (lapsetoetus ja suurperetoetus).";
++    } else if (hh.largeKept > 0) {
+       desc.note += (desc.note ? " " : "") + "Lasterikka pere toetus säilib kodanikupalgaga (lapsetoetuste kärbe pole märgitud).";
+     }
+     return desc;
+@@ -2099,6 +2132,11 @@ function initializeCalculator() {
+     if (hh.largeKept > 0) addSeg(netUbi, hh.children >= 7 ? "l7" : "l36", hh.largeKept);
+     if (hh.childUbiOn) {
+       for (var i = 0; i < hh.children; i++) addSeg(netUbi, "kid", hh.childUbiEach);
++    } else if (hh.keepsOldBenefits) {
++      // lapsed pole sihtrühmas: iga lapse senine lapsetoetus säilib (nagu senise korra tulbas)
++      childAllowanceList(c.year, hh.children).forEach(function (v) {
++        addSeg(netUbi, "kid", v);
++      });
+     }
+     bars.push(makeBar(netUbiLabel(hh, ubiMonthly), netUbi));
+ 
+@@ -2116,7 +2154,7 @@ function initializeCalculator() {
+         return s.k === "kid";
+       });
+     };
+-    var kidWhat = has(netUbi) && has(netStd) ? "kodanikupalk / lapsetoetus " + c.year : has(netStd) ? "lapsetoetus " + c.year : "kodanikupalk";
++    var kidWhat = has(netUbi) && has(netStd) && hh.childUbiOn ? "kodanikupalk / lapsetoetus " + c.year : has(netStd) ? "lapsetoetus " + c.year : "kodanikupalk";
+     return {
+       bars: bars,
+       parentsLabel: K === 1 ? "Täiskasvanu kodanikupalk" : "Täiskasvanute kodanikupalk",
