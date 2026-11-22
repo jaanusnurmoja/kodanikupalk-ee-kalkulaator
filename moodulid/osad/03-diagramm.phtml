@@ -32,7 +32,7 @@ if ($fabv == 'details')
      Ilma @container-toeta brauser jääb kitsa paigutuse peale. */
   .family-chart-module .fc-wrap { container-type: inline-size; }
   .family-chart-module .fc-side { margin: 0 0 10px; }
-  .family-chart-module .fc-side-title { margin: 0 0 6px; font-size: 13px; font-weight: 700; }
+  .family-chart-module .fc-side-title { margin: 6px 0 6px; font-size: 15px; font-weight: 700; }
   .family-chart-module .fc-models { display: flex; flex-wrap: wrap; gap: 6px; }
   .family-chart-module .fc-model { position: relative; display: block; flex: 1 1 140px; margin: 0; cursor: pointer; }
   .family-chart-module .fc-model input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
@@ -54,10 +54,16 @@ if ($fabv == 'details')
 </style>
 
 <div class="result-container family-chart-module">
-  <h2 class="toc1 toc-result">Leibkonna ühe kuu sissetulek</h2>
+  <h2 class="toc1 toc-result">Leibkonna ühe kuu sissetulek <a href="javascript:void();"><span id="help-toc1-title" class="handcursor" style="display: inline" onclick="this.querySelectorAll('img, button').forEach(el => el.classList.toggle('d-none'));document.getElementById('result-comment').classList.toggle('d-none')">
+    <img src="/images/help24.png" class="help">
+    <button type="button" class="btn-close d-none" style="filter: invert(27%) sepia(91%) saturate(2352%) hue-rotate(346deg) brightness(94%) contrast(97%);height: auto;vertical-align: middle;"></button>
+  </span></a>
+  </h2>
+  
+  <p id="result-comment" class="small mb-1 d-none">Leibkonna kuine sissetulek kalkulaatoris tehtud valiku ja kehtiva (kehtinud) korra järgi. <strong>Summad ümardatud euro täpsusega.</strong> Kui summat pole näha, hõljuta selle nägemiseks hiirt lõigu kohal.</p>
+
   <!-- Lause tulemuse kohta (JS: ubiTaxCalcCompare.js, 11. osa); peidetud, kuni on arvutatud -->
   <p id="result-sentence" class="result-sentence d-none" role="status" aria-live="polite" aria-atomic="true"></p>
-  <p class="small mb-1">Leibkonna kuine sissetulek kalkulaatoris tehtud valiku ja kehtiva (kehtinud) korra järgi. <strong>Summad ümardatud euro täpsusega.</strong> Kui summat pole näha, hõljuta selle nägemiseks hiirt lõigu kohal.</p>
   <!--div class="fc-grid">
     <div id="family-chart-desc" class="fc-desc"></div>
     <div id="family-chart" class="fc-chart"></div>
@@ -67,7 +73,7 @@ if ($fabv == 'details')
       <!-- Maksumudeli valik (JS: ubiTaxCalcCompare.js, 12. osa). Tegelik valik on mooduli (3) nuppudel name="taxscenario";
            need nupud peegeldavad seda, seetõttu on neil teine nimi (name="taxscenario_chart"), mitte "taxscenario". -->
       <div class="fc-side">
-        <div id="fc-model-title" class="fc-side-title">Maksumudel</div>
+        <div id="fc-model-title" class="fc-side-title">Maksumudeli valikud</div>
         <div class="fc-models" role="radiogroup" aria-labelledby="fc-model-title">
           <label class="fc-model"><input type="radio" name="taxscenario_chart" value="1" checked="checked" onchange="setTaxScenario(1);"><span class="fc-model-face"><b>Variant 1</b><small>ühtekuuluvusmaks</small></span></label>
           <label class="fc-model"><input type="radio" name="taxscenario_chart" value="2" onchange="setTaxScenario(2);"><span class="fc-model-face"><b>Variant 2</b><small>üks ja ainus tulumaks</small></span></label>
