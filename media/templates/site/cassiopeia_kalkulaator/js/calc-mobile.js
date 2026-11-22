@@ -11,6 +11,8 @@
  *      Peidetakse klassiga "visually-hidden" (+ atribuut "inert", vt CONFIG): elemendid ja
  *      nende väärtused jäävad DOM-i alles ja kalkulaatori JS loeb neid nagu enne.
  *      Midagi ei eemaldata ega tõsteta ümber, ID-d jäävad samaks.
+ *      Sama nupp on ka maksude arvestamise valikutel (mooduli (2) veerg #calc-deductions, "Arvesta ..."),
+ *      aga ainult telefoni laiusel (--calc-phone = 1 css/user.css-is, alla 768 px).
  *   3. Sektordiagrammid: kitsas vaates joonistatakse need ekraani laiuse järgi
  *      (kalkulaatori drawPieChart on fikseeritud 360 x 240 px, legend paremal).
  *
@@ -31,9 +33,15 @@
     // Kärpekohtade valik (intro, lisasumma väli ja tabel): nupp "Näita kärpevõimalusi"
     cutsSelectors: ["#group162"],
 
+    // Maksude arvestamise valikud ("Arvesta sotsiaalmaksu ...", maksuvaba tulu jt, mooduli (2) paremast
+    // veerust): nupp "Näita maksude arvestamise valikuid". Ainult telefoni laiusel (alla 768 px).
+    taxSelectors: ["#calc-deductions"],
+
     // Kas grupp on kitsas vaates lehe avamisel peidus (true) või nähtav (false).
     // false = kasutaja saab kärpeid/sihtrühmi muuta kohe ja peidab ise.
-    startCollapsed: { base: true, cuts: true },
+    // NB! tax: true tähendab, et vaikimisi märgitud valikud (nt maksuvaba tulu) mõjutavad tulemust ka siis,
+    // kui kasutaja neid ei näe.
+    startCollapsed: { base: true, cuts: true, tax: true },
 
     // Peidetud grupile lisatakse ka atribuut "inert": klaviatuur (Tab) ei sattu nähtamatutele
     // märkeruutudele. Väärtused jäävad loetavaks (.value, .checked, .innerHTML).
@@ -42,7 +50,8 @@
 
     labels: {
       base: { show: "Näita alusandmeid", hide: "Peida alusandmed" },
-      cuts: { show: "Näita kärpevõimalusi", hide: "Peida kärpevõimalused" }
+      cuts: { show: "Näita kärpevõimalusi", hide: "Peida kärpevõimalused" },
+      tax: { show: "Näita maksude arvestamise valikuid", hide: "Peida maksude arvestamise valikud" }
     },
 
     // Sektordiagrammid kitsas vaates (px)
@@ -55,9 +64,10 @@
   var tabs = [];
   var panes = {};
   var lastNarrow = null;
-  var toggleBar = null;
-  var collapsed = { base: CONFIG.startCollapsed.base, cuts: CONFIG.startCollapsed.cuts };
-  var groups = { base: [], cuts: [] };
+  var toggleBar = null; // lähteandmete ja kärbete nupuriba
+  var taxBar = null; // maksude arvestamise nupuriba (mooduli (2) reas, ainult telefoni laiusel)
+  var collapsed = { base: CONFIG.startCollapsed.base, cuts: CONFIG.startCollapsed.cuts, tax: CONFIG.startCollapsed.tax };
+  var groups = { base: [], cuts: [], tax: [] };
 
   /* -------------------------------------------------------------------------
    * Abifunktsioonid
@@ -65,6 +75,11 @@
   function isNarrow() {
     // Kitsa vaate piir on CSS-is (muutuja --calc-narrow), et see oleks ühes kohas
     return getComputedStyle(layout).getPropertyValue("--calc-narrow").trim() === "1";
+  }
+
+  function isPhone() {
+    // Telefoni laiuse piir on samuti CSS-is (muutuja --calc-phone); telefon on alati ka kitsas vaade
+    return isNarrow() && getComputedStyle(layout).getPropertyValue("--calc-phone").trim() === "1";
   }
 
   function findAll(selectors) {
@@ -165,7 +180,8 @@
       }
       el.setAttribute("data-calc-collapsible", "1"); // märgib, et klassi lisasime meie
     });
-    var button = toggleBar && toggleBar.querySelector('[data-calc-toggle="' + kind + '"]');
+    // Nupp võib olla kummalgi ribal (lähteandmete või maksude arvestamise), seepärast otsime kogu paigutusest
+    var button = layout.querySelector('[data-calc-toggle="' + kind + '"]');
     if (button) {
       button.setAttribute("aria-expanded", hide ? "false" : "true");
       button.textContent = hide ? CONFIG.labels[kind].show : CONFIG.labels[kind].hide;
@@ -211,16 +227,49 @@
     setCollapsed("cuts", collapsed.cuts);
   }
 
-  // Arvutivaatesse tagasi: nupud ära, kõik grupid nähtavaks (nagu enne)
-  function removeToggles() {
-    if (toggleBar && toggleBar.parentNode) toggleBar.parentNode.removeChild(toggleBar);
-    toggleBar = null;
-    groups.base.concat(groups.cuts).forEach(function (el) {
+  // Võtab peidetud gruppidelt meie lisatud klassi ja atribuudid ära (nagu enne)
+  function restoreGroups(list) {
+    list.forEach(function (el) {
       if (el.getAttribute("data-calc-collapsible") !== "1") return;
       el.classList.remove(HIDE_CLASS);
       el.removeAttribute("inert");
       el.removeAttribute("data-calc-collapsible");
     });
+  }
+
+  // Arvutivaatesse tagasi: nupud ära, kõik grupid nähtavaks (nagu enne)
+  function removeToggles() {
+    if (toggleBar && toggleBar.parentNode) toggleBar.parentNode.removeChild(toggleBar);
+    toggleBar = null;
+    restoreGroups(groups.base.concat(groups.cuts));
+  }
+
+  // Maksude arvestamise valikud: nupp läheb veerust #calc-deductions vahetult ette. Veerg on mooduli (2)
+  // reas .calc-fit-cols, seega on nupuriba selle rea lapsena veergude vahel (täislaiuses).
+  // Lehel mooduli (2) pole (puudub #calc-deductions): ei tee midagi.
+  function buildTaxToggle() {
+    if (taxBar) return;
+    groups.tax = findAll(CONFIG.taxSelectors);
+    if (!groups.tax.length) return;
+    taxBar = document.createElement("div");
+    taxBar.className = "calc-toggles calc-toggles-tax";
+    taxBar.setAttribute("data-calc-generated", "1");
+    taxBar.appendChild(makeToggleButton("tax"));
+    groups.tax[0].parentNode.insertBefore(taxBar, groups.tax[0]);
+    setCollapsed("tax", collapsed.tax); // kasutaja varasem valik säilib ka pärast ekraani pööramist
+  }
+
+  function removeTaxToggle() {
+    if (!taxBar) return;
+    if (taxBar.parentNode) taxBar.parentNode.removeChild(taxBar);
+    taxBar = null;
+    restoreGroups(groups.tax);
+  }
+
+  // Telefoni laiusel nupp olemas, muidu (tahvel, arvutivaade) ploki sisu nähtav nagu enne
+  function syncTaxToggle() {
+    if (isPhone()) buildTaxToggle();
+    else removeTaxToggle();
   }
 
   /* -------------------------------------------------------------------------
@@ -298,9 +347,11 @@
       window.requestAnimationFrame(function () {
         pending = false;
         sync();
+        syncTaxToggle();
       });
     });
     sync();
+    syncTaxToggle();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

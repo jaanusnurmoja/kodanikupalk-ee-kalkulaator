@@ -1,5 +1,7 @@
 # Kodanikupalga kalkulaator: mahaarvamised enne palgavälja telefonis (kasutajamugavus, 3. etapp)
 
+> **ASENDATUD (2026-11-22).** See lahendus (CSS `order`) ei aidanud päris telefonis (Chrome) ja on main'ist eemaldatud. Asendus: maksude arvestamise valikud on kitsas vaates nupu taga, vt `MUUDATUSED-mobiil-maksuvalikud.md`. Dokument jääb ajaloo jaoks; **ära paigalda** `mobiil-jarjekord.diff`-i.
+
 Fail: ainult `media/templates/site/cassiopeia_kalkulaator/css/user.css` (+7 rida, olemasoleva "alla 576 px" ploki lõpus). Moodulit (`kalkulaator-uus.phtml`), `ubiTaxCalcCompare.js`-i, `calc-mobile.js`-i ega `index.php`-d ei muudetud. Muudatus on diffina failis `mobiil-jarjekord.diff` (rakendub main'i seisule, kus maksumudeli etapp 2 on juba sees).
 
 **Paigaldus:** laadi üles `user.css`, puhasta Joomla vahemälu ja tee brauseris Ctrl+F5. Ühtki moodulit pole vaja Joomlas uuendada.
