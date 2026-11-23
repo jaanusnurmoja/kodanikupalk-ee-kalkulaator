@@ -51,6 +51,26 @@ if ($fabv == 'details')
     .family-chart-module .fc-models { flex-direction: column; }
     .family-chart-module .fc-model { flex: 0 0 auto; }
   }
+
+  /* Täiendavate kärbete kerimisväli (JS: ubiTaxCalcCompare.js, 13. osa). Nooled muudavad Fabriku välja
+     #all_value_eur_custom 100 mln € sammuga. Saidi üldine "p { margin-top: 20px }" ei tohi siia mõjuda. */
+  .family-chart-module .fc-cuts { margin: 14px 0 4px; padding: 10px 12px 12px; border: 1px solid #d5dbe3; border-radius: 6px; background: #f5f7fa; color: #1f1f1f; }
+  .family-chart-module .fc-cuts p { margin: 0; }
+  .family-chart-module .fc-cuts-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+  .family-chart-module .fc-cuts-title { font-size: 15px; font-weight: 700; }
+  .family-chart-module .fc-help { flex: none; width: 24px; height: 24px; padding: 0; border: 1px solid #1f4e79; border-radius: 50%; background: #fff; color: #1f4e79; font: inherit; font-size: 14px; font-weight: 700; line-height: 1; cursor: pointer; }
+  .family-chart-module .fc-help:hover, .family-chart-module .fc-help[aria-expanded="true"] { background: #1f4e79; color: #fff; }
+  .family-chart-module .fc-cuts-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  .family-chart-module .fc-spin { display: inline-flex; align-items: stretch; flex: none; max-width: 100%; border: 1px solid #1f4e79; border-radius: 6px; background: #fff; overflow: hidden; }
+  .family-chart-module .fc-spin-btn { width: 46px; min-height: 44px; padding: 0; border: 0; background: #e8f0f8; color: #1f4e79; font: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+  .family-chart-module .fc-spin-btn:hover { background: #d5e4f3; }
+  .family-chart-module .fc-spin-btn[aria-disabled="true"] { background: #f1f3f5; color: #9aa5b1; cursor: not-allowed; }
+  .family-chart-module .fc-spin-btn:focus-visible, .family-chart-module .fc-help:focus-visible { outline: 3px solid #1f4e79; outline-offset: 2px; }
+  .family-chart-module .fc-spin-value { display: flex; align-items: center; justify-content: center; min-width: 9em; padding: 0 10px; border-left: 1px solid #b8c0cc; border-right: 1px solid #b8c0cc; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .family-chart-module .fc-cuts-info { flex: 1 1 220px; font-size: 13px; line-height: 1.35; }
+  .family-chart-module .fc-cuts-note { margin-top: 8px; padding: 6px 10px; border-left: 4px solid #b26a00; background: #fff6e5; font-size: 12.5px; line-height: 1.35; }
+  .family-chart-module .fc-cuts-help { margin-top: 10px; padding-top: 8px; border-top: 1px solid #d5dbe3; font-size: 13px; line-height: 1.4; }
+  .family-chart-module .fc-cuts-help p + p { margin-top: 6px; }
 </style>
 
 <div class="result-container family-chart-module">
@@ -83,6 +103,31 @@ if ($fabv == 'details')
         <div id="family-chart-legend" class="fc-legend" aria-label="Diagrammi legend"></div>
         <div id="family-chart" class="fc-chart"></div>
         <div id="family-chart-desc" class="fc-desc"></div>
+      </div>
+    </div>
+
+    <!-- Täiendavate kärbete kerimisväli (JS: ubiTaxCalcCompare.js, 13. osa). Juhib Fabriku välja #all_value_eur_custom
+         (kärpekohtade tabeli juures, grupp #group162): nooled muudavad selle väärtust 100 mln € võrra ja käivitavad väljal
+         "change" (st välja enda onchange="calcReduction(this);outputCalc();"). Näit loetakse alati väljalt tagasi.
+         Peidetud (d-none), kuni JS on välja leidnud; ilma väljata jääb peitu. -->
+    <div id="fc-cut-stepper" class="fc-cuts d-none">
+      <div class="fc-cuts-head">
+        <span id="fc-cuts-title" class="fc-cuts-title">Täiendavad kärped</span>
+        <button type="button" id="fc-cuts-help-btn" class="fc-help" aria-expanded="false" aria-controls="fc-cuts-help" aria-label="Täpsem selgitus" onclick="toggleCutsHelp();">?</button>
+      </div>
+      <div class="fc-cuts-row">
+        <div class="fc-spin" role="group" aria-labelledby="fc-cuts-title">
+          <button type="button" class="fc-spin-btn" data-cuts-dir="-1" aria-label="Vähenda 100 miljoni euro võrra" aria-disabled="true" onclick="stepCuts(-1);">&#9660;</button>
+          <output id="fc-cuts-value" class="fc-spin-value" for="all_value_eur_custom">0&nbsp;mln&nbsp;€</output>
+          <button type="button" class="fc-spin-btn" data-cuts-dir="1" aria-label="Suurenda 100 miljoni euro võrra" onclick="stepCuts(1);">&#9650;</button>
+        </div>
+        <p class="fc-cuts-info">Vaata, kuidas muutub maksukoormus ja netotulu, kui veelgi kärpida muid riigieelarve kulusid 100 miljoni euro kaupa või muul moel suurendada meetme rahastust.</p>
+      </div>
+      <p id="fc-cuts-note" class="fc-cuts-note d-none" aria-live="polite"></p>
+      <div id="fc-cuts-help" class="fc-cuts-help d-none">
+        <p><strong>Mis see on?</strong> Kärpekohtade tabelis (lähteandmete all) on loetletud kärped ja tuluallikad, mida kodanikupalga rahastamisel arvesse võetakse. Siin lisad neile veel <strong>määramata kärped või muu lisarahastuse</strong>, näiteks riigieelarve muude kulude vähendamise, mille mahtu pole veel täpsemalt nimetatud. Iga noole klõps lisab või võtab ära 100 miljonit eurot.</p>
+        <p><strong>Mida see muudab?</strong> Mida suurem lisarahastus, seda vähem tuleb raha koguda maksudega. Arvutatud maksumäär ja sellega leibkonna netotulu muutuvad kohe (diagramm, lause ja tulemuste tabel uuenevad).</p>
+        <p><strong>Sama väli.</strong> Nooled juhivad kärpekohtade tabeli juures olevat lahtrit „Erinevad / määramata tuluallikad / kärpekohad“. Kui kirjutad sinna oma summa, näed seda ka siin; nooled viivad summa lähima 100 miljoni sammuni.</p>
       </div>
     </div>
   </div>
