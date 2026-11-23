@@ -200,9 +200,10 @@ blockquote .blockquote {
   }
 }
 
-/* Peitmise/näitamise nupud: lähteandmete, kärbete ja maksude arvestamise valikute jaoks
-   (loob calc-mobile.js kitsas vaates). Maksude arvestamise nupuriba (.calc-toggles-tax) on mooduli (2)
-   reas .calc-fit-cols veergude vahel; Bootstrapi .row > * annab talle täislaiuse ja veergude äärise. */
+/* Peitmise/näitamise nupud: lähteandmete, kärbete ja maksude arvestamise valikute jaoks (loob calc-mobile.js).
+   Lähteandmete ja kärbete nupud on kõigil laiustel (calc-mobile.js, CONFIG.baseOnWide), maksude arvestamise nupp
+   ainult telefonil. Maksude arvestamise nupuriba (.calc-toggles-tax) on mooduli (2) reas .calc-fit-cols veergude
+   vahel; Bootstrapi .row > * annab talle täislaiuse ja veergude äärise. */
 .calc-toggles {
   display: flex;
   flex-wrap: wrap;
