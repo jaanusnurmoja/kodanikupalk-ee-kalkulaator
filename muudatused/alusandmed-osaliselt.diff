@@ -1,0 +1,242 @@
+diff --git a/media/templates/site/cassiopeia_kalkulaator/css/user.css b/media/templates/site/cassiopeia_kalkulaator/css/user.css
+index d5f72d7..8862da9 100644
+--- a/media/templates/site/cassiopeia_kalkulaator/css/user.css
++++ b/media/templates/site/cassiopeia_kalkulaator/css/user.css
+@@ -200,9 +200,10 @@ blockquote .blockquote {
+   }
+ }
+ 
+-/* Peitmise/näitamise nupud: lähteandmete, kärbete ja maksude arvestamise valikute jaoks
+-   (loob calc-mobile.js kitsas vaates). Maksude arvestamise nupuriba (.calc-toggles-tax) on mooduli (2)
+-   reas .calc-fit-cols veergude vahel; Bootstrapi .row > * annab talle täislaiuse ja veergude äärise. */
++/* Peitmise/näitamise nupud: lähteandmete, kärbete ja maksude arvestamise valikute jaoks (loob calc-mobile.js).
++   Lähteandmete ja kärbete nupud on kõigil laiustel (calc-mobile.js, CONFIG.baseOnWide), maksude arvestamise nupp
++   ainult telefonil. Maksude arvestamise nupuriba (.calc-toggles-tax) on mooduli (2) reas .calc-fit-cols veergude
++   vahel; Bootstrapi .row > * annab talle täislaiuse ja veergude äärise. */
+ .calc-toggles {
+   display: flex;
+   flex-wrap: wrap;
+diff --git a/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js b/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js
+index ecf7263..5f2b7b0 100644
+--- a/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js
++++ b/media/templates/site/cassiopeia_kalkulaator/js/calc-mobile.js
+@@ -1,23 +1,26 @@
+ /* ============================================================================
+  * calc-mobile.js
+- * Kodanikupalga kalkulaatori kitsa vaate (mobiili) abiskript.
++ * Kodanikupalga kalkulaatori lehe abiskript: kitsa vaate (mobiili) paigutus ning lähteandmete
++ * osaline peitmine.
+  * Laeb mall cassiopeia_kalkulaator (index.php, registreeritud $wa->registerAndUseScript).
+  *
+- * Mida teeb (ainult kitsas vaates, st kui .calc-layout muutuja --calc-narrow on 1;
+- * piir on kirjas css/user.css-is):
+- *   1. Vahelehed: veerud .calc-pane-calc (kalkulaator) ja .calc-pane-data (lähteandmed)
++ * Mida teeb:
++ *   1. Vahelehed (ainult kitsas vaates, st kui .calc-layout muutuja --calc-narrow on 1; piir on
++ *      kirjas css/user.css-is): veerud .calc-pane-calc (kalkulaator) ja .calc-pane-data (lähteandmed)
+  *      muutuvad vahelehtedeks. Vahelehtede nupud tegi index.php.
+- *   2. Lähteandmete ja kärbete valiku peitmise/näitamise nupud (genereeritakse siin).
++ *   2. Lähteandmete peitmise/näitamise nupud (genereeritakse siin), KÕIGIL laiustel (CONFIG.baseOnWide):
++ *        - "Näita kõiki alusandmeid": vaikimisi on nähtav ainult põhiosa (aasta, lapsestandardid ja suurte
++ *          sihtrühmade märkeruudud, vt CONFIG.basePartial), ülejäänud lähteandmed on peidus;
++ *        - "Peida kärpevõimalused": kärpekohtade tabel (#group162) on vaikimisi nähtav.
+  *      Peidetakse klassiga "visually-hidden" (+ atribuut "inert", vt CONFIG): elemendid ja
+  *      nende väärtused jäävad DOM-i alles ja kalkulaatori JS loeb neid nagu enne.
+  *      Midagi ei eemaldata ega tõsteta ümber, ID-d jäävad samaks.
+  *      Sama nupp on ka maksude arvestamise valikutel (mooduli (2) veerg #calc-deductions, "Arvesta ..."),
+  *      aga ainult telefoni laiusel (--calc-phone = 1 css/user.css-is, alla 768 px).
+- *   3. Sektordiagrammid: kitsas vaates joonistatakse need ekraani laiuse järgi
++ *   3. Sektordiagrammid (ainult kitsas vaates): joonistatakse ekraani laiuse järgi
+  *      (kalkulaatori drawPieChart on fikseeritud 360 x 240 px, legend paremal).
+  *
+- * Arvutivaates (--calc-narrow = 0) ei tee skript midagi: lehe välimus ja käitumine on nagu enne.
+- * Ilma JS-ita jäävad veerud kitsas vaates lihtsalt üksteise alla.
++ * Ilma JS-ita jäävad veerud kitsas vaates lihtsalt üksteise alla ja kõik lähteandmed on nähtavad.
+  * ========================================================================= */
+ (function () {
+   "use strict";
+@@ -26,22 +29,49 @@
+    * SEADED: muuda siin
+    * ----------------------------------------------------------------------- */
+   var CONFIG = {
+-    // Lähteandmete grupid (Fabriku fieldset'id): peidetakse nupuga "Näita alusandmeid".
+-    // Lisa siia id, kui lähteandmetesse tuleb uus grupp.
+-    baseDataSelectors: ["#group161", "#group210", "#group164", "#group205", "#group207"],
++    // Lähteandmete grupid (Fabriku fieldset'id), mis peidetakse TERVIKUNA nupuga "Näita kõiki alusandmeid":
++    // sotsiaalmaks, kommentaarid, muud andmed ja toetused, mis kodanikupalga korral kaovad.
++    // Lisa siia id, kui lähteandmetesse tuleb uus grupp, mille tahad vaikimisi peita.
++    baseDataSelectors: ["#group210", "#group164", "#group205", "#group207"],
++
++    // Grupid, millest peidetakse ainult OSA (sama nupp "Näita kõiki alusandmeid"). group = grupi fieldset,
++    // keep = elementide valijad, mis jäävad nähtavaks: nende Fabriku elemendi konteiner (.fabrikElementContainer)
++    // jääb alles, kõik grupi teised konteinerid peidetakse. Grupi pealkiri, sissejuhatus ja lõpumärkus jäävad alati nähtavaks.
++    // #group161 "Peamised lähteandmed": nähtavaks jäävad aasta, ametlik lapse ülalpidamiskulu, minimaalne lapsestandard
++    // ja suurte sihtrühmade (pensionisaajad, lapsed, ülejäänud) arvud märkeruutudega; rahvaarv, tulu, tulumaks ja
++    // pensioni baasosa read peidetakse.
++    // Kui ühtegi keep-elementi ei leita (nt Fabriku väljade nimed muutusid), ei peideta sellest grupist midagi.
++    basePartial: [
++      {
++        group: "#group161",
++        keep: [
++          "#ubi_model_base_data___year_ro",
++          "#ubi_model_base_data___child_per_month_ro",
++          "#ubi_model_base_data___alt_child_std_ro",
++          "#ubi_model_base_data___pension_receivers_ro",
++          "#ubi_model_base_data___others_inc_children_ro",
++          "#ubi_model_base_data___income_tax_payers_ro"
++        ]
++      }
++    ],
+ 
+-    // Kärpekohtade valik (intro, lisasumma väli ja tabel): nupp "Näita kärpevõimalusi"
++    // Kärpekohtade valik (intro, lisasumma väli ja tabel): nupp "Peida kärpevõimalused" / "Näita kärpevõimalusi"
+     cutsSelectors: ["#group162"],
+ 
++    // Kas lähteandmete ja kärbete nupud on ka arvutivaates (true) või ainult kitsas vaates (false).
++    // false = arvutivaates on kõik lähteandmed nähtavad nagu enne.
++    baseOnWide: true,
++
+     // Maksude arvestamise valikud ("Arvesta sotsiaalmaksu ...", maksuvaba tulu jt, mooduli (2) paremast
+     // veerust): nupp "Näita maksude arvestamise valikuid". Ainult telefoni laiusel (alla 768 px).
+     taxSelectors: ["#calc-deductions"],
+ 
+-    // Kas grupp on kitsas vaates lehe avamisel peidus (true) või nähtav (false).
+-    // false = kasutaja saab kärpeid/sihtrühmi muuta kohe ja peidab ise.
++    // Kas grupp on lehe avamisel peidus (true) või nähtav (false).
++    // base: true = peidus on ainult lisaandmed (põhiosa jääb nähtavaks, vt basePartial);
++    // cuts: false = kasutaja saab kärpeid muuta kohe ja peidab ise.
+     // NB! tax: true tähendab, et vaikimisi märgitud valikud (nt maksuvaba tulu) mõjutavad tulemust ka siis,
+     // kui kasutaja neid ei näe.
+-    startCollapsed: { base: true, cuts: true, tax: true },
++    startCollapsed: { base: true, cuts: false, tax: true },
+ 
+     // Peidetud grupile lisatakse ka atribuut "inert": klaviatuur (Tab) ei sattu nähtamatutele
+     // märkeruutudele. Väärtused jäävad loetavaks (.value, .checked, .innerHTML).
+@@ -49,7 +79,7 @@
+     inertWhenCollapsed: true,
+ 
+     labels: {
+-      base: { show: "Näita alusandmeid", hide: "Peida alusandmed" },
++      base: { show: "Näita kõiki alusandmeid", hide: "Peida lisaandmed" },
+       cuts: { show: "Näita kärpevõimalusi", hide: "Peida kärpevõimalused" },
+       tax: { show: "Näita maksude arvestamise valikuid", hide: "Peida maksude arvestamise valikud" }
+     },
+@@ -64,7 +94,7 @@
+   var tabs = [];
+   var panes = {};
+   var lastNarrow = null;
+-  var toggleBar = null; // lähteandmete ja kärbete nupuriba
++  var toggleBar = null; // lähteandmete ja kärbete nupuriba (kõigil laiustel, kui CONFIG.baseOnWide)
+   var taxBar = null; // maksude arvestamise nupuriba (mooduli (2) reas, ainult telefoni laiusel)
+   var collapsed = { base: CONFIG.startCollapsed.base, cuts: CONFIG.startCollapsed.cuts, tax: CONFIG.startCollapsed.tax };
+   var groups = { base: [], cuts: [], tax: [] };
+@@ -204,24 +234,58 @@
+     return button;
+   }
+ 
++  // Osaliselt peidetava grupi (CONFIG.basePartial) fieldset ja peidetavad elemendikonteinerid:
++  // kõik grupi Fabriku elemendikonteinerid, mis ei sisalda ühtegi keep-elementi. Fabriku enda peidetud
++  // konteinerid (fabrikHide) jäetakse puutumata. Kui ühtegi keep-elementi ei leita, ei peideta midagi.
++  function partialParts(spec) {
++    var group = layout.querySelector(spec.group);
++    if (!group) return { group: null, hide: [] };
++    var containers = Array.prototype.slice.call(group.querySelectorAll(".fabrikElementContainer"));
++    var kept = containers.filter(function (box) {
++      return spec.keep.some(function (selector) {
++        return box.querySelector(selector) !== null;
++      });
++    });
++    if (!kept.length) return { group: group, hide: [] };
++    return {
++      group: group,
++      hide: containers.filter(function (box) {
++        return kept.indexOf(box) === -1 && !box.classList.contains("fabrikHide");
++      })
++    };
++  }
++
+   function buildToggles() {
+     if (toggleBar) return;
+-    groups.base = findAll(CONFIG.baseDataSelectors);
++    var whole = findAll(CONFIG.baseDataSelectors);
++    var partial = CONFIG.basePartial.map(partialParts);
++    groups.base = whole.slice();
++    partial.forEach(function (part) {
++      groups.base = groups.base.concat(part.hide);
++    });
+     groups.cuts = findAll(CONFIG.cutsSelectors);
+-    var all = groups.base.concat(groups.cuts);
+-    if (!all.length) return; // lehel pole lähteandmeid (nt aastate nimekiri)
++    if (!groups.base.length && !groups.cuts.length) return; // lehel pole lähteandmeid (nt aastate nimekiri)
+ 
+-    // Nupuriba läheb esimese peidetava grupi ette (dokumendi järjekorras)
+-    all.sort(function (a, b) {
++    // Nupuriba läheb esimese tervikuna peidetava grupi või kärbete grupi ette (dokumendi järjekorras), st
++    // osaliselt peidetava grupi (#group161) alla. Kui selliseid gruppe pole, siis osaliselt peidetava grupi järele.
++    var anchors = whole.concat(groups.cuts);
++    anchors.sort(function (a, b) {
+       return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+     });
++    var partialGroup = null;
++    partial.forEach(function (part) {
++      if (!partialGroup && part.group && part.hide.length) partialGroup = part.group;
++    });
++    if (!anchors.length && !partialGroup) return;
++
+     toggleBar = document.createElement("div");
+     toggleBar.className = "calc-toggles";
+     toggleBar.setAttribute("data-calc-generated", "1");
+     ["base", "cuts"].forEach(function (kind) {
+       if (groups[kind].length) toggleBar.appendChild(makeToggleButton(kind));
+     });
+-    all[0].parentNode.insertBefore(toggleBar, all[0]);
++    if (anchors.length) anchors[0].parentNode.insertBefore(toggleBar, anchors[0]);
++    else partialGroup.parentNode.insertBefore(toggleBar, partialGroup.nextSibling);
+ 
+     setCollapsed("base", collapsed.base);
+     setCollapsed("cuts", collapsed.cuts);
+@@ -237,7 +301,7 @@
+     });
+   }
+ 
+-  // Arvutivaatesse tagasi: nupud ära, kõik grupid nähtavaks (nagu enne)
++  // Nupud ära, kõik grupid nähtavaks (nagu enne): kui nuppe ei tohi selles vaates olla (CONFIG.baseOnWide = false)
+   function removeToggles() {
+     if (toggleBar && toggleBar.parentNode) toggleBar.parentNode.removeChild(toggleBar);
+     toggleBar = null;
+@@ -315,15 +379,20 @@
+   function enterNarrow() {
+     installChartOverride();
+     applyTabSemantics(true); // joonistab kalkulaatori vahelehe diagrammid uuesti, kui see on avatud
+-    buildToggles();
+   }
+ 
+   function leaveNarrow() {
+     applyTabSemantics(false);
+-    removeToggles();
+     redrawCharts(); // arvutivaates tagasi originaalmõõtudega diagrammid
+   }
+ 
++  // Lähteandmete ja kärbete nupud: kõigil laiustel (CONFIG.baseOnWide) või ainult kitsas vaates.
++  // Kasutaja viimane valik (nähtav / peidus) säilib ekraani pööramisel.
++  function syncToggles() {
++    if (isNarrow() || CONFIG.baseOnWide) buildToggles();
++    else removeToggles();
++  }
++
+   function sync() {
+     var narrow = isNarrow();
+     if (narrow === lastNarrow) return;
+@@ -347,10 +416,12 @@
+       window.requestAnimationFrame(function () {
+         pending = false;
+         sync();
++        syncToggles();
+         syncTaxToggle();
+       });
+     });
+     sync();
++    syncToggles();
+     syncTaxToggle();
+   }
+ 
