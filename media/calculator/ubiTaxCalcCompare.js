@@ -19,6 +19,8 @@
  *      diagrammimoodulis; kutsutakse wageCalc()-ist)
  *  12. Maksumudeli valik diagrammi juures (variant 1 / 2; nupud name="taxscenario_chart" diagrammimoodulis,
  *      tegelik valik on mooduli (3) nuppudel name="taxscenario"; kutsutakse wageCalc()-ist)
+ *  13. Täiendavate kärbete kerimisväli diagrammi all (nooled muudavad Fabriku välja #all_value_eur_custom
+ *      100 mln € sammuga; näit loetakse väljalt; kutsutakse wageCalc()-ist)
  *
  * HTML-i käsitlejad (onclick="outputCalc();..." jms) kutsuvad neid funktsioone
  * nimepidi, seega kõik avalikud nimed on säilitatud.
@@ -514,6 +516,13 @@ function ubiCostReducers(element = null, ind = null) {
   }
 }
 
+// Kärbete lisaväli (Fabrik, id="all_value_eur_custom", name="reductionValueCustom"): kasutaja oma summa või
+// kerimisvälja (13. osa) 100 mln € sammud. Tühi, vigane või puuduv väli = 0.
+function customReductionValue() {
+  var field = document.getElementById("all_value_eur_custom");
+  return field === null ? 0 : parseFloat(field.value) || 0;
+}
+
 function calcReductionFull() {
   var total = 0;
   var reductionValue = document.getElementsByName("reductionValue");
@@ -522,7 +531,9 @@ function calcReductionFull() {
       total += parseFloat(row.value);
     }
   }
-  return total;
+  // Lisaväli on name="reductionValueCustom", seega ülaltoodud tsükkel seda ei näe. Ilma siinse liitmiseta
+  // kustutas näiteks kodanikupalga summa muutus (calcReduction(ubi-amount)) lisakärbe arvutusest, kuigi väli näitas seda edasi.
+  return total + customReductionValue();
 }
 
 function calcReduction(element = null, click = false, gross = null) {
@@ -545,7 +556,8 @@ function calcReduction(element = null, click = false, gross = null) {
     reductionTotal = calcReductionFull();
     console.log("=" + reductionTotal);
   } else {
-    reductionTotal = calcReductionFull() + parseFloat(element.value);
+    // Lisaväli (#all_value_eur_custom): calcReductionFull() sisaldab selle väärtust juba
+    reductionTotal = calcReductionFull();
     console.log("=" + reductionTotal);
   }
   if (gross === null) gross = grossNeed;
@@ -1622,6 +1634,8 @@ function wageCalc() {
   renderResultSentence(c);
   // Maksumudeli valik diagrammi juures peegeldab tabeli valikut. Vt 12. osa.
   syncTaxScenarioButtons();
+  // Täiendavate kärbete kerimisväli näitab Fabriku välja #all_value_eur_custom praegust väärtust. Vt 13. osa.
+  syncCutStepper();
 }
 
 
@@ -2554,4 +2568,151 @@ function initializeCalculator() {
 
   window.setTaxScenario = setTaxScenario;
   window.syncTaxScenarioButtons = syncTaxScenarioButtons;
+})();
+
+
+/* ---------------------------------------------------------------------------
+ * 13. TÄIENDAVATE KÄRPETE KERIMISVÄLI (100 mln € sammuga)
+ *     (element #fc-cut-stepper diagrammimoodulis "KalkulaatorV3M (diagramm)"; kutsutakse wageCalc()-ist)
+ *
+ *   Kerimisväli ei salvesta midagi ise: see juhib Fabriku välja #all_value_eur_custom (kärpekohtade tabeli juures,
+ *   name="reductionValueCustom", step="100000000", min="0"). Noole klõps seab välja uue väärtuse ja käivitab
+ *   väljal "change" sündmuse, mis kutsub välja enda HTML-i käsitleja onchange="calcReduction(this);outputCalc();".
+ *   Seega on arvutus täpselt sama, mis siis, kui kasutaja kirjutaks summa väljale ise.
+ *
+ *   Vastupidi: kerimisvälja näit loetakse alati väljalt, igal wageCalc()-i käigul (ka siis, kui kasutaja kirjutas väljale
+ *   oma arvu või tegi sellel topeltklõpsu, vt toggleVals). Kui arv pole sammu kordne (nt 150 000 000), näitab
+ *   kerimisväli seda tavalise väärtusena ja märkus ütleb, kuhu nooled selle viivad (nagu brauseri enda number-välja nooled:
+ *   lähima sammuni üles / alla).
+ *
+ *   Ilma väljata (nt Fabriku grupp #group162 pole lehel) jääb kerimisväli peidetuks (d-none) ja midagi ei toimu.
+ *   Samm ja miinimum loetakse välja atribuutidest step ja min (vaikimisi 100 000 000 ja 0). HTML-i nuppude
+ *   aria-label tekstid ("100 miljoni euro võrra") on kirjas käsitsi: kui muudad välja sammu, muuda ka need.
+ * ------------------------------------------------------------------------- */
+(function () {
+  "use strict";
+
+  var FIELD_ID = "all_value_eur_custom";
+  var DEFAULT_STEP = 100000000;
+  var EPS = 1e-9;
+  var lastKey = null;
+
+  function field() {
+    return document.getElementById(FIELD_ID);
+  }
+
+  function toNumber(value, fallback) {
+    var n = parseFloat(value);
+    return isFinite(n) ? n : fallback;
+  }
+
+  function stepOf(f) {
+    var step = toNumber(f.step, DEFAULT_STEP); // step="any" -> vaikesamm
+    return step > 0 ? step : DEFAULT_STEP;
+  }
+
+  // Tühi või vigane väli = 0 (nagu customReductionValue() arvutuses)
+  function valueOf(f) {
+    return toNumber(f.value, 0);
+  }
+
+  // Väärtus sammu kordsena; ujukomamüra (nt 2.9999999999) loetakse täisarvuks
+  function stepsIn(value, step) {
+    var q = value / step;
+    var r = Math.round(q);
+    return Math.abs(q - r) < EPS ? r : q;
+  }
+
+  // Lähim sammu kordne üles (direction > 0) või alla (direction < 0), mitte alla miinimumi
+  function nextValue(value, direction, step, min) {
+    var q = stepsIn(value, step);
+    var n = direction > 0 ? Math.floor(q) + 1 : Math.ceil(q) - 1;
+    return Math.max(min, n * step);
+  }
+
+  // 300000000 -> "300 mln €", 1200000000 -> "1 200 mln €", 150000 -> "0,15 mln €" (tühikud on mittemurduvad)
+  function mln(value) {
+    var m = Math.round((value / 1e6) * 100) / 100;
+    return m.toLocaleString("et-EE", { maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " mln €";
+  }
+
+  function eur(value) {
+    return Math.round(value).toLocaleString("et-EE").replace(/[  ]/g, " ") + " €";
+  }
+
+  function hide(el, on) {
+    if (el !== null) el.classList.toggle("d-none", on);
+  }
+
+  function noteText(value, step, min) {
+    return (
+      "Kärpekohtade lahtrisse on kirjutatud oma summa " + eur(value) + ". Nooled viivad selle " + mln(step) + " sammule: " +
+      "▼ " + mln(nextValue(value, -1, step, min)) + ", ▲ " + mln(nextValue(value, 1, step, min)) + "."
+    );
+  }
+
+  /*
+    Uuendab kerimisvälja näidu välja praeguse väärtuse järgi; kutsutakse wageCalc() lõpust ja nooltelt.
+    Kui väärtus pole muutunud, ei puututa DOM-i (väljund on ekraanilugejale elav piirkond, ei loe sama väärtust uuesti).
+  */
+  function syncCutStepper() {
+    var box = document.getElementById("fc-cut-stepper");
+    if (box === null) return;
+    var f = field();
+    if (f === null) {
+      lastKey = null;
+      hide(box, true);
+      return;
+    }
+    var value = valueOf(f);
+    var step = stepOf(f);
+    var min = toNumber(f.min, 0);
+    var key = value + "|" + step + "|" + min;
+    hide(box, false);
+    if (key === lastKey) return;
+    lastKey = key;
+
+    var out = document.getElementById("fc-cuts-value");
+    if (out !== null) out.textContent = mln(value);
+    var down = box.querySelector('[data-cuts-dir="-1"]');
+    if (down !== null) down.setAttribute("aria-disabled", value <= min ? "true" : "false");
+
+    var note = document.getElementById("fc-cuts-note");
+    var offGrid = value > min && stepsIn(value, step) !== Math.round(stepsIn(value, step));
+    if (note !== null) {
+      note.textContent = offGrid || value < min ? noteText(value, step, min) : "";
+      hide(note, !(offGrid || value < min));
+    }
+  }
+
+  // Noolte käsitleja: direction 1 = rohkem lisakärpeid, -1 = vähem
+  function stepCuts(direction) {
+    var f = field();
+    if (f === null) return;
+    var current = valueOf(f);
+    var next = nextValue(current, direction, stepOf(f), toNumber(f.min, 0));
+    if (next === current) return; // nt ▼ nulli juures
+    f.value = String(next);
+    // Sama sündmus, mille brauser annab, kui kasutaja väärtuse väljal ise muudab; käivitab välja onchange-käsitleja
+    f.dispatchEvent(new Event("change", { bubbles: true }));
+    syncCutStepper(); // juhuks, kui väljal pole onchange-käsitlejat (wageCalc() ei jooksnud)
+  }
+
+  // "?" nupu käsitleja: täpsem selgitus lahti / kinni
+  function toggleCutsHelp() {
+    var button = document.getElementById("fc-cuts-help-btn");
+    var panel = document.getElementById("fc-cuts-help");
+    if (button === null || panel === null) return;
+    var open = button.getAttribute("aria-expanded") !== "true";
+    button.setAttribute("aria-expanded", open ? "true" : "false");
+    hide(panel, !open);
+  }
+
+  window.stepCuts = stepCuts;
+  window.toggleCutsHelp = toggleCutsHelp;
+  window.syncCutStepper = syncCutStepper;
+
+  // Esimene näit: wageCalc() kutsub seda küll igal arvutusel, aga väli võib olla algväärtusega juba enne esimest arvutust
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", syncCutStepper);
+  else syncCutStepper();
 })();
