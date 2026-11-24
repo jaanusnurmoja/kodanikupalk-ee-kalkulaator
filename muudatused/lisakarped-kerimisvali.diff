@@ -1,0 +1,368 @@
+diff --git a/media/calculator/ubiTaxCalcCompare.js b/media/calculator/ubiTaxCalcCompare.js
+index 4559ac4..619c2fb 100644
+--- a/media/calculator/ubiTaxCalcCompare.js
++++ b/media/calculator/ubiTaxCalcCompare.js
+@@ -19,6 +19,8 @@
+  *      diagrammimoodulis; kutsutakse wageCalc()-ist)
+  *  12. Maksumudeli valik diagrammi juures (variant 1 / 2; nupud name="taxscenario_chart" diagrammimoodulis,
+  *      tegelik valik on mooduli (3) nuppudel name="taxscenario"; kutsutakse wageCalc()-ist)
++ *  13. Täiendavate kärbete kerimisväli diagrammi all (nooled muudavad Fabriku välja #all_value_eur_custom
++ *      100 mln € sammuga; näit loetakse väljalt; kutsutakse wageCalc()-ist)
+  *
+  * HTML-i käsitlejad (onclick="outputCalc();..." jms) kutsuvad neid funktsioone
+  * nimepidi, seega kõik avalikud nimed on säilitatud.
+@@ -514,6 +516,13 @@ function ubiCostReducers(element = null, ind = null) {
+   }
+ }
+ 
++// Kärbete lisaväli (Fabrik, id="all_value_eur_custom", name="reductionValueCustom"): kasutaja oma summa või
++// kerimisvälja (13. osa) 100 mln € sammud. Tühi, vigane või puuduv väli = 0.
++function customReductionValue() {
++  var field = document.getElementById("all_value_eur_custom");
++  return field === null ? 0 : parseFloat(field.value) || 0;
++}
++
+ function calcReductionFull() {
+   var total = 0;
+   var reductionValue = document.getElementsByName("reductionValue");
+@@ -522,7 +531,9 @@ function calcReductionFull() {
+       total += parseFloat(row.value);
+     }
+   }
+-  return total;
++  // Lisaväli on name="reductionValueCustom", seega ülaltoodud tsükkel seda ei näe. Ilma siinse liitmiseta
++  // kustutas näiteks kodanikupalga summa muutus (calcReduction(ubi-amount)) lisakärbe arvutusest, kuigi väli näitas seda edasi.
++  return total + customReductionValue();
+ }
+ 
+ function calcReduction(element = null, click = false, gross = null) {
+@@ -545,7 +556,8 @@ function calcReduction(element = null, click = false, gross = null) {
+     reductionTotal = calcReductionFull();
+     console.log("=" + reductionTotal);
+   } else {
+-    reductionTotal = calcReductionFull() + parseFloat(element.value);
++    // Lisaväli (#all_value_eur_custom): calcReductionFull() sisaldab selle väärtust juba
++    reductionTotal = calcReductionFull();
+     console.log("=" + reductionTotal);
+   }
+   if (gross === null) gross = grossNeed;
+@@ -1622,6 +1634,8 @@ function wageCalc() {
+   renderResultSentence(c);
+   // Maksumudeli valik diagrammi juures peegeldab tabeli valikut. Vt 12. osa.
+   syncTaxScenarioButtons();
++  // Täiendavate kärbete kerimisväli näitab Fabriku välja #all_value_eur_custom praegust väärtust. Vt 13. osa.
++  syncCutStepper();
+ }
+ 
+ 
+@@ -2555,3 +2569,150 @@ function initializeCalculator() {
+   window.setTaxScenario = setTaxScenario;
+   window.syncTaxScenarioButtons = syncTaxScenarioButtons;
+ })();
++
++
++/* ---------------------------------------------------------------------------
++ * 13. TÄIENDAVATE KÄRPETE KERIMISVÄLI (100 mln € sammuga)
++ *     (element #fc-cut-stepper diagrammimoodulis "KalkulaatorV3M (diagramm)"; kutsutakse wageCalc()-ist)
++ *
++ *   Kerimisväli ei salvesta midagi ise: see juhib Fabriku välja #all_value_eur_custom (kärpekohtade tabeli juures,
++ *   name="reductionValueCustom", step="100000000", min="0"). Noole klõps seab välja uue väärtuse ja käivitab
++ *   väljal "change" sündmuse, mis kutsub välja enda HTML-i käsitleja onchange="calcReduction(this);outputCalc();".
++ *   Seega on arvutus täpselt sama, mis siis, kui kasutaja kirjutaks summa väljale ise.
++ *
++ *   Vastupidi: kerimisvälja näit loetakse alati väljalt, igal wageCalc()-i käigul (ka siis, kui kasutaja kirjutas väljale
++ *   oma arvu või tegi sellel topeltklõpsu, vt toggleVals). Kui arv pole sammu kordne (nt 150 000 000), näitab
++ *   kerimisväli seda tavalise väärtusena ja märkus ütleb, kuhu nooled selle viivad (nagu brauseri enda number-välja nooled:
++ *   lähima sammuni üles / alla).
++ *
++ *   Ilma väljata (nt Fabriku grupp #group162 pole lehel) jääb kerimisväli peidetuks (d-none) ja midagi ei toimu.
++ *   Samm ja miinimum loetakse välja atribuutidest step ja min (vaikimisi 100 000 000 ja 0). HTML-i nuppude
++ *   aria-label tekstid ("100 miljoni euro võrra") on kirjas käsitsi: kui muudad välja sammu, muuda ka need.
++ * ------------------------------------------------------------------------- */
++(function () {
++  "use strict";
++
++  var FIELD_ID = "all_value_eur_custom";
++  var DEFAULT_STEP = 100000000;
++  var EPS = 1e-9;
++  var lastKey = null;
++
++  function field() {
++    return document.getElementById(FIELD_ID);
++  }
++
++  function toNumber(value, fallback) {
++    var n = parseFloat(value);
++    return isFinite(n) ? n : fallback;
++  }
++
++  function stepOf(f) {
++    var step = toNumber(f.step, DEFAULT_STEP); // step="any" -> vaikesamm
++    return step > 0 ? step : DEFAULT_STEP;
++  }
++
++  // Tühi või vigane väli = 0 (nagu customReductionValue() arvutuses)
++  function valueOf(f) {
++    return toNumber(f.value, 0);
++  }
++
++  // Väärtus sammu kordsena; ujukomamüra (nt 2.9999999999) loetakse täisarvuks
++  function stepsIn(value, step) {
++    var q = value / step;
++    var r = Math.round(q);
++    return Math.abs(q - r) < EPS ? r : q;
++  }
++
++  // Lähim sammu kordne üles (direction > 0) või alla (direction < 0), mitte alla miinimumi
++  function nextValue(value, direction, step, min) {
++    var q = stepsIn(value, step);
++    var n = direction > 0 ? Math.floor(q) + 1 : Math.ceil(q) - 1;
++    return Math.max(min, n * step);
++  }
++
++  // 300000000 -> "300 mln €", 1200000000 -> "1 200 mln €", 150000 -> "0,15 mln €" (tühikud on mittemurduvad)
++  function mln(value) {
++    var m = Math.round((value / 1e6) * 100) / 100;
++    return m.toLocaleString("et-EE", { maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " mln €";
++  }
++
++  function eur(value) {
++    return Math.round(value).toLocaleString("et-EE").replace(/[  ]/g, " ") + " €";
++  }
++
++  function hide(el, on) {
++    if (el !== null) el.classList.toggle("d-none", on);
++  }
++
++  function noteText(value, step, min) {
++    return (
++      "Kärpekohtade lahtrisse on kirjutatud oma summa " + eur(value) + ". Nooled viivad selle " + mln(step) + " sammule: " +
++      "▼ " + mln(nextValue(value, -1, step, min)) + ", ▲ " + mln(nextValue(value, 1, step, min)) + "."
++    );
++  }
++
++  /*
++    Uuendab kerimisvälja näidu välja praeguse väärtuse järgi; kutsutakse wageCalc() lõpust ja nooltelt.
++    Kui väärtus pole muutunud, ei puututa DOM-i (väljund on ekraanilugejale elav piirkond, ei loe sama väärtust uuesti).
++  */
++  function syncCutStepper() {
++    var box = document.getElementById("fc-cut-stepper");
++    if (box === null) return;
++    var f = field();
++    if (f === null) {
++      lastKey = null;
++      hide(box, true);
++      return;
++    }
++    var value = valueOf(f);
++    var step = stepOf(f);
++    var min = toNumber(f.min, 0);
++    var key = value + "|" + step + "|" + min;
++    hide(box, false);
++    if (key === lastKey) return;
++    lastKey = key;
++
++    var out = document.getElementById("fc-cuts-value");
++    if (out !== null) out.textContent = mln(value);
++    var down = box.querySelector('[data-cuts-dir="-1"]');
++    if (down !== null) down.setAttribute("aria-disabled", value <= min ? "true" : "false");
++
++    var note = document.getElementById("fc-cuts-note");
++    var offGrid = value > min && stepsIn(value, step) !== Math.round(stepsIn(value, step));
++    if (note !== null) {
++      note.textContent = offGrid || value < min ? noteText(value, step, min) : "";
++      hide(note, !(offGrid || value < min));
++    }
++  }
++
++  // Noolte käsitleja: direction 1 = rohkem lisakärpeid, -1 = vähem
++  function stepCuts(direction) {
++    var f = field();
++    if (f === null) return;
++    var current = valueOf(f);
++    var next = nextValue(current, direction, stepOf(f), toNumber(f.min, 0));
++    if (next === current) return; // nt ▼ nulli juures
++    f.value = String(next);
++    // Sama sündmus, mille brauser annab, kui kasutaja väärtuse väljal ise muudab; käivitab välja onchange-käsitleja
++    f.dispatchEvent(new Event("change", { bubbles: true }));
++    syncCutStepper(); // juhuks, kui väljal pole onchange-käsitlejat (wageCalc() ei jooksnud)
++  }
++
++  // "?" nupu käsitleja: täpsem selgitus lahti / kinni
++  function toggleCutsHelp() {
++    var button = document.getElementById("fc-cuts-help-btn");
++    var panel = document.getElementById("fc-cuts-help");
++    if (button === null || panel === null) return;
++    var open = button.getAttribute("aria-expanded") !== "true";
++    button.setAttribute("aria-expanded", open ? "true" : "false");
++    hide(panel, !open);
++  }
++
++  window.stepCuts = stepCuts;
++  window.toggleCutsHelp = toggleCutsHelp;
++  window.syncCutStepper = syncCutStepper;
++
++  // Esimene näit: wageCalc() kutsub seda küll igal arvutusel, aga väli võib olla algväärtusega juba enne esimest arvutust
++  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", syncCutStepper);
++  else syncCutStepper();
++})();
+diff --git a/moodulid/kalkulaator-uus.phtml b/moodulid/kalkulaator-uus.phtml
+index 9f10869..affc56f 100644
+--- a/moodulid/kalkulaator-uus.phtml
++++ b/moodulid/kalkulaator-uus.phtml
+@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
+       </noscript>
+ 
+ 
+-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261121"></script>
++      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261124"></script>
+ 
+       <script>checkPeople();</script>
+ 
+@@ -339,9 +339,9 @@ if ($fabv != 'details') { ?>
+                       onchange="wageCalc();">
+                     
+                     <br><small>Vaikimisi ilmub siia keskmine brutopalk. Proovi ka mediaanpalgaga: <a href="javascript:void(0)" class="text-decoration-none"><span id="medianhint" class="bg-darkYellow p-1" onclick="document.getElementById('eur').value=this.innerHTML;outputCalc();drawChart();"></span></a> või miinimumpalgaga: <a href="javascript:void(0)" class="text-decoration-none"><span id="minwagehint" class="bg-darkYellow p-1" onclick="document.getElementById('eur').value=this.innerHTML;outputCalc();drawChart();"></span></a></small>
++
+                     <script>initMedianAndMinWageHint();</script>
+-                    
+-					<select class="select120 input-small form-control-plaintext visually-hidden" disabled="disabled"
++                    <select class="select120 input-small form-control-plaintext visually-hidden" disabled="disabled"
+                       id="period" name="period"
+                       onclick="toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();"
+                       onchange="ChangeTFMLabel(GetSelectValue(period)); toggleRowVisibility(this.selectedIndex == 0);outputCalc(); drawChart();"
+@@ -594,6 +594,26 @@ if ($fabv == 'details')
+     .family-chart-module .fc-models { flex-direction: column; }
+     .family-chart-module .fc-model { flex: 0 0 auto; }
+   }
++
++  /* Täiendavate kärbete kerimisväli (JS: ubiTaxCalcCompare.js, 13. osa). Nooled muudavad Fabriku välja
++     #all_value_eur_custom 100 mln € sammuga. Saidi üldine "p { margin-top: 20px }" ei tohi siia mõjuda. */
++  .family-chart-module .fc-cuts { margin: 14px 0 4px; padding: 10px 12px 12px; border: 1px solid #d5dbe3; border-radius: 6px; background: #f5f7fa; color: #1f1f1f; }
++  .family-chart-module .fc-cuts p { margin: 0; }
++  .family-chart-module .fc-cuts-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
++  .family-chart-module .fc-cuts-title { font-size: 15px; font-weight: 700; }
++  .family-chart-module .fc-help { flex: none; width: 24px; height: 24px; padding: 0; border: 1px solid #1f4e79; border-radius: 50%; background: #fff; color: #1f4e79; font: inherit; font-size: 14px; font-weight: 700; line-height: 1; cursor: pointer; }
++  .family-chart-module .fc-help:hover, .family-chart-module .fc-help[aria-expanded="true"] { background: #1f4e79; color: #fff; }
++  .family-chart-module .fc-cuts-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
++  .family-chart-module .fc-spin { display: inline-flex; align-items: stretch; flex: none; max-width: 100%; border: 1px solid #1f4e79; border-radius: 6px; background: #fff; overflow: hidden; }
++  .family-chart-module .fc-spin-btn { width: 46px; min-height: 44px; padding: 0; border: 0; background: #e8f0f8; color: #1f4e79; font: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
++  .family-chart-module .fc-spin-btn:hover { background: #d5e4f3; }
++  .family-chart-module .fc-spin-btn[aria-disabled="true"] { background: #f1f3f5; color: #9aa5b1; cursor: not-allowed; }
++  .family-chart-module .fc-spin-btn:focus-visible, .family-chart-module .fc-help:focus-visible { outline: 3px solid #1f4e79; outline-offset: 2px; }
++  .family-chart-module .fc-spin-value { display: flex; align-items: center; justify-content: center; min-width: 9em; padding: 0 10px; border-left: 1px solid #b8c0cc; border-right: 1px solid #b8c0cc; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
++  .family-chart-module .fc-cuts-info { flex: 1 1 220px; font-size: 13px; line-height: 1.35; }
++  .family-chart-module .fc-cuts-note { margin-top: 8px; padding: 6px 10px; border-left: 4px solid #b26a00; background: #fff6e5; font-size: 12.5px; line-height: 1.35; }
++  .family-chart-module .fc-cuts-help { margin-top: 10px; padding-top: 8px; border-top: 1px solid #d5dbe3; font-size: 13px; line-height: 1.4; }
++  .family-chart-module .fc-cuts-help p + p { margin-top: 6px; }
+ </style>
+ 
+ <div class="result-container family-chart-module">
+@@ -628,6 +648,31 @@ if ($fabv == 'details')
+         <div id="family-chart-desc" class="fc-desc"></div>
+       </div>
+     </div>
++
++    <!-- Täiendavate kärbete kerimisväli (JS: ubiTaxCalcCompare.js, 13. osa). Juhib Fabriku välja #all_value_eur_custom
++         (kärpekohtade tabeli juures, grupp #group162): nooled muudavad selle väärtust 100 mln € võrra ja käivitavad väljal
++         "change" (st välja enda onchange="calcReduction(this);outputCalc();"). Näit loetakse alati väljalt tagasi.
++         Peidetud (d-none), kuni JS on välja leidnud; ilma väljata jääb peitu. -->
++    <div id="fc-cut-stepper" class="fc-cuts d-none">
++      <div class="fc-cuts-head">
++        <span id="fc-cuts-title" class="fc-cuts-title">Täiendavad kärped</span>
++        <button type="button" id="fc-cuts-help-btn" class="fc-help" aria-expanded="false" aria-controls="fc-cuts-help" aria-label="Täpsem selgitus" onclick="toggleCutsHelp();">?</button>
++      </div>
++      <div class="fc-cuts-row">
++        <div class="fc-spin" role="group" aria-labelledby="fc-cuts-title">
++          <button type="button" class="fc-spin-btn" data-cuts-dir="-1" aria-label="Vähenda 100 miljoni euro võrra" aria-disabled="true" onclick="stepCuts(-1);">&#9660;</button>
++          <output id="fc-cuts-value" class="fc-spin-value" for="all_value_eur_custom">0&nbsp;mln&nbsp;€</output>
++          <button type="button" class="fc-spin-btn" data-cuts-dir="1" aria-label="Suurenda 100 miljoni euro võrra" onclick="stepCuts(1);">&#9650;</button>
++        </div>
++        <p class="fc-cuts-info">Vaata, kuidas muutub maksukoormus ja netotulu, kui veelgi kärpida muid riigieelarve kulusid 100 miljoni euro kaupa või muul moel suurendada meetme rahastust.</p>
++      </div>
++      <p id="fc-cuts-note" class="fc-cuts-note d-none" aria-live="polite"></p>
++      <div id="fc-cuts-help" class="fc-cuts-help d-none">
++        <p><strong>Mis see on?</strong> Kärpekohtade tabelis (lähteandmete all) on loetletud kärped ja tuluallikad, mida kodanikupalga rahastamisel arvesse võetakse. Siin lisad neile veel <strong>määramata kärped või muu lisarahastuse</strong>, näiteks riigieelarve muude kulude vähendamise, mille mahtu pole veel täpsemalt nimetatud. Iga noole klõps lisab või võtab ära 100 miljonit eurot.</p>
++        <p><strong>Mida see muudab?</strong> Mida suurem lisarahastus, seda vähem tuleb raha koguda maksudega. Arvutatud maksumäär ja sellega leibkonna netotulu muutuvad kohe (diagramm, lause ja tulemuste tabel uuenevad).</p>
++        <p><strong>Sama väli.</strong> Nooled juhivad kärpekohtade tabeli juures olevat lahtrit „Erinevad / määramata tuluallikad / kärpekohad“. Kui kirjutad sinna oma summa, näed seda ka siin; nooled viivad summa lähima 100 miljoni sammuni.</p>
++      </div>
++    </div>
+   </div>
+ </div>
+ 
+diff --git a/moodulid/osad/01-top.phtml b/moodulid/osad/01-top.phtml
+index 230dd69..fb7a77d 100644
+--- a/moodulid/osad/01-top.phtml
++++ b/moodulid/osad/01-top.phtml
+@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
+       </noscript>
+ 
+ 
+-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261121"></script>
++      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261124"></script>
+ 
+       <script>checkPeople();</script>
+ 
+diff --git a/moodulid/osad/03-diagramm.phtml b/moodulid/osad/03-diagramm.phtml
+index e6bc423..79c8d3e 100644
+--- a/moodulid/osad/03-diagramm.phtml
++++ b/moodulid/osad/03-diagramm.phtml
+@@ -51,6 +51,26 @@ if ($fabv == 'details')
+     .family-chart-module .fc-models { flex-direction: column; }
+     .family-chart-module .fc-model { flex: 0 0 auto; }
+   }
++
++  /* Täiendavate kärbete kerimisväli (JS: ubiTaxCalcCompare.js, 13. osa). Nooled muudavad Fabriku välja
++     #all_value_eur_custom 100 mln € sammuga. Saidi üldine "p { margin-top: 20px }" ei tohi siia mõjuda. */
++  .family-chart-module .fc-cuts { margin: 14px 0 4px; padding: 10px 12px 12px; border: 1px solid #d5dbe3; border-radius: 6px; background: #f5f7fa; color: #1f1f1f; }
++  .family-chart-module .fc-cuts p { margin: 0; }
++  .family-chart-module .fc-cuts-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
++  .family-chart-module .fc-cuts-title { font-size: 15px; font-weight: 700; }
++  .family-chart-module .fc-help { flex: none; width: 24px; height: 24px; padding: 0; border: 1px solid #1f4e79; border-radius: 50%; background: #fff; color: #1f4e79; font: inherit; font-size: 14px; font-weight: 700; line-height: 1; cursor: pointer; }
++  .family-chart-module .fc-help:hover, .family-chart-module .fc-help[aria-expanded="true"] { background: #1f4e79; color: #fff; }
++  .family-chart-module .fc-cuts-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
++  .family-chart-module .fc-spin { display: inline-flex; align-items: stretch; flex: none; max-width: 100%; border: 1px solid #1f4e79; border-radius: 6px; background: #fff; overflow: hidden; }
++  .family-chart-module .fc-spin-btn { width: 46px; min-height: 44px; padding: 0; border: 0; background: #e8f0f8; color: #1f4e79; font: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
++  .family-chart-module .fc-spin-btn:hover { background: #d5e4f3; }
++  .family-chart-module .fc-spin-btn[aria-disabled="true"] { background: #f1f3f5; color: #9aa5b1; cursor: not-allowed; }
++  .family-chart-module .fc-spin-btn:focus-visible, .family-chart-module .fc-help:focus-visible { outline: 3px solid #1f4e79; outline-offset: 2px; }
++  .family-chart-module .fc-spin-value { display: flex; align-items: center; justify-content: center; min-width: 9em; padding: 0 10px; border-left: 1px solid #b8c0cc; border-right: 1px solid #b8c0cc; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
++  .family-chart-module .fc-cuts-info { flex: 1 1 220px; font-size: 13px; line-height: 1.35; }
++  .family-chart-module .fc-cuts-note { margin-top: 8px; padding: 6px 10px; border-left: 4px solid #b26a00; background: #fff6e5; font-size: 12.5px; line-height: 1.35; }
++  .family-chart-module .fc-cuts-help { margin-top: 10px; padding-top: 8px; border-top: 1px solid #d5dbe3; font-size: 13px; line-height: 1.4; }
++  .family-chart-module .fc-cuts-help p + p { margin-top: 6px; }
+ </style>
+ 
+ <div class="result-container family-chart-module">
+@@ -85,6 +105,31 @@ if ($fabv == 'details')
+         <div id="family-chart-desc" class="fc-desc"></div>
+       </div>
+     </div>
++
++    <!-- Täiendavate kärbete kerimisväli (JS: ubiTaxCalcCompare.js, 13. osa). Juhib Fabriku välja #all_value_eur_custom
++         (kärpekohtade tabeli juures, grupp #group162): nooled muudavad selle väärtust 100 mln € võrra ja käivitavad väljal
++         "change" (st välja enda onchange="calcReduction(this);outputCalc();"). Näit loetakse alati väljalt tagasi.
++         Peidetud (d-none), kuni JS on välja leidnud; ilma väljata jääb peitu. -->
++    <div id="fc-cut-stepper" class="fc-cuts d-none">
++      <div class="fc-cuts-head">
++        <span id="fc-cuts-title" class="fc-cuts-title">Täiendavad kärped</span>
++        <button type="button" id="fc-cuts-help-btn" class="fc-help" aria-expanded="false" aria-controls="fc-cuts-help" aria-label="Täpsem selgitus" onclick="toggleCutsHelp();">?</button>
++      </div>
++      <div class="fc-cuts-row">
++        <div class="fc-spin" role="group" aria-labelledby="fc-cuts-title">
++          <button type="button" class="fc-spin-btn" data-cuts-dir="-1" aria-label="Vähenda 100 miljoni euro võrra" aria-disabled="true" onclick="stepCuts(-1);">&#9660;</button>
++          <output id="fc-cuts-value" class="fc-spin-value" for="all_value_eur_custom">0&nbsp;mln&nbsp;€</output>
++          <button type="button" class="fc-spin-btn" data-cuts-dir="1" aria-label="Suurenda 100 miljoni euro võrra" onclick="stepCuts(1);">&#9650;</button>
++        </div>
++        <p class="fc-cuts-info">Vaata, kuidas muutub maksukoormus ja netotulu, kui veelgi kärpida muid riigieelarve kulusid 100 miljoni euro kaupa või muul moel suurendada meetme rahastust.</p>
++      </div>
++      <p id="fc-cuts-note" class="fc-cuts-note d-none" aria-live="polite"></p>
++      <div id="fc-cuts-help" class="fc-cuts-help d-none">
++        <p><strong>Mis see on?</strong> Kärpekohtade tabelis (lähteandmete all) on loetletud kärped ja tuluallikad, mida kodanikupalga rahastamisel arvesse võetakse. Siin lisad neile veel <strong>määramata kärped või muu lisarahastuse</strong>, näiteks riigieelarve muude kulude vähendamise, mille mahtu pole veel täpsemalt nimetatud. Iga noole klõps lisab või võtab ära 100 miljonit eurot.</p>
++        <p><strong>Mida see muudab?</strong> Mida suurem lisarahastus, seda vähem tuleb raha koguda maksudega. Arvutatud maksumäär ja sellega leibkonna netotulu muutuvad kohe (diagramm, lause ja tulemuste tabel uuenevad).</p>
++        <p><strong>Sama väli.</strong> Nooled juhivad kärpekohtade tabeli juures olevat lahtrit „Erinevad / määramata tuluallikad / kärpekohad“. Kui kirjutad sinna oma summa, näed seda ka siin; nooled viivad summa lähima 100 miljoni sammuni.</p>
++      </div>
++    </div>
+   </div>
+ </div>
+ 
