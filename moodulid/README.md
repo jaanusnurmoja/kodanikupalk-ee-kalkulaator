@@ -4,7 +4,7 @@
 
 | Osa | Moodul (markeri nimi) | Sisu |
 |---|---|---|
-| `osad/01-top.phtml` | `KalkulaatorV3-top` | aasta valik (2020–2026) ja "näita rohkem" nupp |
+| `osad/01-top.phtml` | `KalkulaatorV3-top` | aasta valik (2020–2027) ja "näita rohkem" nupp |
 | `osad/02-sisend.phtml` | `KalkulaatorV3M (2)` | sisendid: kodanikupalk, palk (brutopalk / tööandja kulu / netotulu), lapsed, mahaarvamised, aastatulu |
 | `osad/03-diagramm.phtml` | `KalkulaatorV3M (diagramm)` | tulemuse lause ja leibkonna kuise sissetuleku diagramm |
 | `osad/04-tulemus.phtml` | `KalkulaatorV3M (3)` | "Tulemus": protsendi aluse valik, tulemustabel ja maksutulude jaotumine |
