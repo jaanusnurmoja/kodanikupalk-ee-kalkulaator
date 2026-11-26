@@ -155,8 +155,9 @@ var SOCIALTAX_MIN = {
   2024: 239.25,
   2025: 270.6,
   2026: 292.38,
-  // 2027: kuumäär 946 € (33% = 312,18 €). Eelnõu 1037 SE (2027. aasta riigieelarve seadus) järgi;
-  // seadus võetakse vastu detsembris, siis kontrolli number üle.
+  // 2027: kuumäär 946 € x 33% = 312,18 €. Kuumäär on eelmise aasta alampalk (2023-2026 klapib):
+  // 946 € on 2026. aasta alampalk (alates 1. aprillist). 2027. aasta alampalk 997 € läheb
+  // 2028. aasta kuumääraks (997 x 33% = 329,01 €). Kinnitub riigieelarve seadusega (eelnõu 1037 SE).
   2027: 312.18,
 };
 

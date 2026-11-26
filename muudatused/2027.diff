@@ -1,5 +1,5 @@
 diff --git a/media/calculator/ubiTaxCalcCompare.js b/media/calculator/ubiTaxCalcCompare.js
-index 619c2fb..4cb69dd 100644
+index 619c2fb..50c48ff 100644
 --- a/media/calculator/ubiTaxCalcCompare.js
 +++ b/media/calculator/ubiTaxCalcCompare.js
 @@ -143,8 +143,8 @@ function calcPeopleFull() {
@@ -13,12 +13,13 @@ index 619c2fb..4cb69dd 100644
  
  // Sotsiaalmaksu kuumäär (riigieelarve seadus, sotsiaalmaksuseaduse § 2.1 alusel)
  var SOCIALTAX_MIN = {
-@@ -155,12 +155,18 @@ var SOCIALTAX_MIN = {
+@@ -155,12 +155,19 @@ var SOCIALTAX_MIN = {
    2024: 239.25,
    2025: 270.6,
    2026: 292.38,
-+  // 2027: kuumäär 946 € (33% = 312,18 €). Eelnõu 1037 SE (2027. aasta riigieelarve seadus) järgi;
-+  // seadus võetakse vastu detsembris, siis kontrolli number üle.
++  // 2027: kuumäär 946 € x 33% = 312,18 €. Kuumäär on eelmise aasta alampalk (2023-2026 klapib):
++  // 946 € on 2026. aasta alampalk (alates 1. aprillist). 2027. aasta alampalk 997 € läheb
++  // 2028. aasta kuumääraks (997 x 33% = 329,01 €). Kinnitub riigieelarve seadusega (eelnõu 1037 SE).
 +  2027: 312.18,
  };
  
@@ -34,7 +35,7 @@ index 619c2fb..4cb69dd 100644
        return SUPPORTED_YEARS[k];
      }
    }
-@@ -208,7 +214,8 @@ function getFundedPensionFromSocialTax(y) {
+@@ -208,7 +215,8 @@ function getFundedPensionFromSocialTax(y) {
    Allikad: Sotsiaalministeerium (perehüvitiste seaduse muudatused 2023; laste ja perede toetamise KKK;
    perepoliitiliste meetmete ülevaade 2025) ja riigikogu eelnõu seletuskiri. 2023. aastal oli suurpere
    toetus ajutiselt 650/850 (alates 2024 450/650). 2025. ja 2026. aastal muudatusi ei ole,
@@ -44,7 +45,7 @@ index 619c2fb..4cb69dd 100644
    Uue aasta lisamiseks: lisa siia rida (ja SUPPORTED_YEARS + SOCIALTAX_MIN).
  */
  var CHILD_BENEFITS = {
-@@ -219,6 +226,7 @@ var CHILD_BENEFITS = {
+@@ -219,6 +227,7 @@ var CHILD_BENEFITS = {
    2024: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
    2025: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
    2026: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
