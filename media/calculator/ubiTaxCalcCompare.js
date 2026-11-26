@@ -143,8 +143,8 @@ function calcPeopleFull() {
  *    getIncomeTaxRate / getTaxFreeYearDefault).
  * ------------------------------------------------------------------------- */
 
-// Aastad, mille raadionupud (year2026 jne) lehel on; kontrollitakse selles järjekorras
-var SUPPORTED_YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+// Aastad, mille raadionupud (year2027 jne) lehel on; kontrollitakse selles järjekorras
+var SUPPORTED_YEARS = [2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020];
 
 // Sotsiaalmaksu kuumäär (riigieelarve seadus, sotsiaalmaksuseaduse § 2.1 alusel)
 var SOCIALTAX_MIN = {
@@ -155,12 +155,18 @@ var SOCIALTAX_MIN = {
   2024: 239.25,
   2025: 270.6,
   2026: 292.38,
+  // 2027: kuumäär 946 € (33% = 312,18 €). Eelnõu 1037 SE (2027. aasta riigieelarve seadus) järgi;
+  // seadus võetakse vastu detsembris, siis kontrolli number üle.
+  2027: 312.18,
 };
 
-// Lehelt valitud aasta (raadionupp) või undefined, kui ükski pole valitud
+// Lehelt valitud aasta (raadionupp) või undefined, kui ükski pole valitud.
+// Aasta nuppu, mida lehel (veel) pole, jäetakse vahele: nii ei lähe uus JS katki
+// ka siis, kui HTML-moodul on uuendamata (nt 2027 nupp puudub).
 function getCheckedYear() {
   for (var k = 0; k < SUPPORTED_YEARS.length; k++) {
-    if (document.getElementById("year" + SUPPORTED_YEARS[k]).checked === true) {
+    var radio = document.getElementById("year" + SUPPORTED_YEARS[k]);
+    if (radio && radio.checked === true) {
       return SUPPORTED_YEARS[k];
     }
   }
@@ -208,7 +214,8 @@ function getFundedPensionFromSocialTax(y) {
   Allikad: Sotsiaalministeerium (perehüvitiste seaduse muudatused 2023; laste ja perede toetamise KKK;
   perepoliitiliste meetmete ülevaade 2025) ja riigikogu eelnõu seletuskiri. 2023. aastal oli suurpere
   toetus ajutiselt 650/850 (alates 2024 450/650). 2025. ja 2026. aastal muudatusi ei ole,
-  summasid ei indekseerita.
+  summasid ei indekseerita. 2027: muudatusi pole leitud, seega on summad 2026. aasta omad
+  (eeldus; mudelis ei ole arvestatud üksikvanema lisatoetust).
   Uue aasta lisamiseks: lisa siia rida (ja SUPPORTED_YEARS + SOCIALTAX_MIN).
 */
 var CHILD_BENEFITS = {
@@ -219,6 +226,7 @@ var CHILD_BENEFITS = {
   2024: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
   2025: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
   2026: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
+  2027: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
 };
 
 // Laste raha senise korra järgi kuus: lapsetoetus + suurpere toetus (nullid, kui aastat tabelis pole)

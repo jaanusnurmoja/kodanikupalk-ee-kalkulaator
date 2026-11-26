@@ -1,0 +1,117 @@
+diff --git a/media/calculator/ubiTaxCalcCompare.js b/media/calculator/ubiTaxCalcCompare.js
+index 619c2fb..4cb69dd 100644
+--- a/media/calculator/ubiTaxCalcCompare.js
++++ b/media/calculator/ubiTaxCalcCompare.js
+@@ -143,8 +143,8 @@ function calcPeopleFull() {
+  *    getIncomeTaxRate / getTaxFreeYearDefault).
+  * ------------------------------------------------------------------------- */
+ 
+-// Aastad, mille raadionupud (year2026 jne) lehel on; kontrollitakse selles järjekorras
+-var SUPPORTED_YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
++// Aastad, mille raadionupud (year2027 jne) lehel on; kontrollitakse selles järjekorras
++var SUPPORTED_YEARS = [2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020];
+ 
+ // Sotsiaalmaksu kuumäär (riigieelarve seadus, sotsiaalmaksuseaduse § 2.1 alusel)
+ var SOCIALTAX_MIN = {
+@@ -155,12 +155,18 @@ var SOCIALTAX_MIN = {
+   2024: 239.25,
+   2025: 270.6,
+   2026: 292.38,
++  // 2027: kuumäär 946 € (33% = 312,18 €). Eelnõu 1037 SE (2027. aasta riigieelarve seadus) järgi;
++  // seadus võetakse vastu detsembris, siis kontrolli number üle.
++  2027: 312.18,
+ };
+ 
+-// Lehelt valitud aasta (raadionupp) või undefined, kui ükski pole valitud
++// Lehelt valitud aasta (raadionupp) või undefined, kui ükski pole valitud.
++// Aasta nuppu, mida lehel (veel) pole, jäetakse vahele: nii ei lähe uus JS katki
++// ka siis, kui HTML-moodul on uuendamata (nt 2027 nupp puudub).
+ function getCheckedYear() {
+   for (var k = 0; k < SUPPORTED_YEARS.length; k++) {
+-    if (document.getElementById("year" + SUPPORTED_YEARS[k]).checked === true) {
++    var radio = document.getElementById("year" + SUPPORTED_YEARS[k]);
++    if (radio && radio.checked === true) {
+       return SUPPORTED_YEARS[k];
+     }
+   }
+@@ -208,7 +214,8 @@ function getFundedPensionFromSocialTax(y) {
+   Allikad: Sotsiaalministeerium (perehüvitiste seaduse muudatused 2023; laste ja perede toetamise KKK;
+   perepoliitiliste meetmete ülevaade 2025) ja riigikogu eelnõu seletuskiri. 2023. aastal oli suurpere
+   toetus ajutiselt 650/850 (alates 2024 450/650). 2025. ja 2026. aastal muudatusi ei ole,
+-  summasid ei indekseerita.
++  summasid ei indekseerita. 2027: muudatusi pole leitud, seega on summad 2026. aasta omad
++  (eeldus; mudelis ei ole arvestatud üksikvanema lisatoetust).
+   Uue aasta lisamiseks: lisa siia rida (ja SUPPORTED_YEARS + SOCIALTAX_MIN).
+ */
+ var CHILD_BENEFITS = {
+@@ -219,6 +226,7 @@ var CHILD_BENEFITS = {
+   2024: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
+   2025: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
+   2026: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
++  2027: { child12: 80, child3plus: 100, large3to6: 450, large7plus: 650 },
+ };
+ 
+ // Laste raha senise korra järgi kuus: lapsetoetus + suurpere toetus (nullid, kui aastat tabelis pole)
+diff --git a/moodulid/README.md b/moodulid/README.md
+index 1a296e0..db6ef02 100644
+--- a/moodulid/README.md
++++ b/moodulid/README.md
+@@ -4,7 +4,7 @@
+ 
+ | Osa | Moodul (markeri nimi) | Sisu |
+ |---|---|---|
+-| `osad/01-top.phtml` | `KalkulaatorV3-top` | aasta valik (2020–2026) ja "näita rohkem" nupp |
++| `osad/01-top.phtml` | `KalkulaatorV3-top` | aasta valik (2020–2027) ja "näita rohkem" nupp |
+ | `osad/02-sisend.phtml` | `KalkulaatorV3M (2)` | sisendid: kodanikupalk, palk (brutopalk / tööandja kulu / netotulu), lapsed, mahaarvamised, aastatulu |
+ | `osad/03-diagramm.phtml` | `KalkulaatorV3M (diagramm)` | tulemuse lause ja leibkonna kuise sissetuleku diagramm |
+ | `osad/04-tulemus.phtml` | `KalkulaatorV3M (3)` | "Tulemus": protsendi aluse valik, tulemustabel ja maksutulude jaotumine |
+diff --git a/moodulid/kalkulaator-uus.phtml b/moodulid/kalkulaator-uus.phtml
+index affc56f..16c3eb8 100644
+--- a/moodulid/kalkulaator-uus.phtml
++++ b/moodulid/kalkulaator-uus.phtml
+@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
+       </noscript>
+ 
+ 
+-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261124"></script>
++      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261126"></script>
+ 
+       <script>checkPeople();</script>
+ 
+@@ -227,6 +227,11 @@ if ($fabv != 'details') { ?>
+                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2026"
+                 checked="checked">
+               <label class="btn btn-lg btn-warning" for="year2026">2026</label>
++
++              <input class="btn-check" type="radio" name="year" value="2027"
++                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2027', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
++                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2027">
++              <label class="btn btn-lg btn-outline-success" for="year2027">2027</label>
+             </div>
+           </div>
+           <div class="col-sm-2">
+diff --git a/moodulid/osad/01-top.phtml b/moodulid/osad/01-top.phtml
+index fb7a77d..e0e7691 100644
+--- a/moodulid/osad/01-top.phtml
++++ b/moodulid/osad/01-top.phtml
+@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
+       </noscript>
+ 
+ 
+-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261124"></script>
++      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261126"></script>
+ 
+       <script>checkPeople();</script>
+ 
+@@ -227,6 +227,11 @@ if ($fabv != 'details') { ?>
+                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2026"
+                 checked="checked">
+               <label class="btn btn-lg btn-warning" for="year2026">2026</label>
++
++              <input class="btn-check" type="radio" name="year" value="2027"
++                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2027', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
++                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2027">
++              <label class="btn btn-lg btn-outline-success" for="year2027">2027</label>
+             </div>
+           </div>
+           <div class="col-sm-2">

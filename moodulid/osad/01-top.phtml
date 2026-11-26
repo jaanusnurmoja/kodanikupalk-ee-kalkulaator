@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
       </noscript>
 
 
-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261124"></script>
+      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261126"></script>
 
       <script>checkPeople();</script>
 
@@ -227,6 +227,11 @@ if ($fabv != 'details') { ?>
                 onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2026"
                 checked="checked">
               <label class="btn btn-lg btn-warning" for="year2026">2026</label>
+
+              <input class="btn-check" type="radio" name="year" value="2027"
+                onclick="window.open('<?php echo $ln;?>/kalkulaator/ubi-model-archive/details/59/2027', '_self');displayAlert();toggleRadioVisibility(GetRadiobuttonValue('year'), this.selectedIndex == 0);toggleAnnualRevenueVisibility(getYear(), this.selectedIndex == 0); ChangeFundedPensionLabel(this.value);outputCalc();drawChart();"
+                onkeyup="outputCalc();drawChart();" onchange="outputCalc();drawChart();" id="year2027">
+              <label class="btn btn-lg btn-outline-success" for="year2027">2027</label>
             </div>
           </div>
           <div class="col-sm-2">
