@@ -1,0 +1,154 @@
+diff --git a/media/calculator/ubiTaxCalcCompare.js b/media/calculator/ubiTaxCalcCompare.js
+index 50c48ff..5c2ed70 100644
+--- a/media/calculator/ubiTaxCalcCompare.js
++++ b/media/calculator/ubiTaxCalcCompare.js
+@@ -1013,6 +1013,32 @@ function calcTaxFreeMinimum(c) {
+   c.taxfree = c.taxfreeX ? c.tfm : 0;
+ }
+ 
++/*
++  Variant 1 (ühtekuuluvusmaks + senine tulumaks), "netotulu" režiim: brutopalk G, mille juures tööandjalt
++  kättesaadav osa (G miinus töötaja töötuskindlustus ja pension, tulumaks ning ühtekuuluvusmaks) on
++  täpselt sisestatud neto miinus kodanikupalk (N). Sama valem, mida kasutab calcIncomeTax / calcUbiTaxFields:
++    maksustatav = G * (1 - ins), ins = töötaja töötuskindlustus + pension
++    tulumaks    = r * (maksustatav - maksuvaba), kui maksustatav ületab maksuvaba, muidu 0
++    ühtekuuluvusmaks = a * G (alus on kogu brutopalk, nagu calcUbiTaxFields)
++  Tulumaksu hargnemine sõltub UBI-variandi enda brutopalgast (mitte sisestatud netost ega senise korra brutost),
++  seega on kaks lahendit; valitakse see, mille eeldus kehtib:
++    A) maksustatav <= maksuvaba (tulumaksu pole):  G = N / (1 - ins - a)
++    B) maksustatav > maksuvaba:  G = (N - r * maksuvaba) / ((1 - ins) * (1 - r) - a)
++  (Varem kasutati siin senise korra tulumaksu otsust, mis tehti kogu neto põhjal: vt MUUDATUSED-netotulu.md.)
++  Kontrollarvutus (vana kommentaar): kui neto on 1000 ja ubi 362, ühtekuuluvusmaks 28.32% ja tulumaks nagu on,
++  siis bruto peab olema 1079,897999820151 (parameetrid, mille all see leiti, pole teada).
++*/
++function grossUbiFromNetVariant1(c) {
++  var a = c.addedTax / 100;
++  var ins = c.fp1 + c.uip2;
++  var netFromEmployer = c.sum - c.ubiAdult;
++  var grossWithoutIncomeTax = netFromEmployer / (1 - ins - a);
++  if (grossWithoutIncomeTax * (1 - ins) <= c.taxfree) return grossWithoutIncomeTax;
++  var denominator = (1 - ins) * (1 - c.itr) - a;
++  if (!(denominator > 0)) return grossWithoutIncomeTax;
++  return (netFromEmployer - c.itr * c.taxfree) / denominator;
++}
++
+ // UBI-variandi brutopalk "netotulu" režiimis (input_3); mõlemad maksustsenaariumid
+ function calcGrossWageUbiFromNet(c) {
+   var grosswage_ubi = byId("grosswage_ubi");
+@@ -1025,16 +1051,7 @@ function calcGrossWageUbiFromNet(c) {
+       );
+     } else {
+       // variant 1: ühtekuuluvusmaks + tulumaks
+-      // (kontrollarvutus: kui neto on 1000 ja ubi 362, ühtekuuluvusmaks 28.32% ja tulumaks nagu on, siis bruto peab olema 1079,897999820151)
+-      var oneMinusAddedTaxRate = 1 - c.addedTax / 100;
+-      var oneMinusInsuranceTotalRate = 1 - (c.fp1 + c.uip2);
+-      var taxFreePlusAddedTax = c.taxfree * oneMinusAddedTaxRate;
+-      var initialReduction = c.sum - c.ubiAdult - taxFreePlusAddedTax;
+-      var taxTotalStuff = 1 - (c.addedTax / 100 + c.incomeTaxRate);
+-      grosswage_ubi.innerHTML = round(
+-        (initialReduction / taxTotalStuff + c.taxfree) / oneMinusInsuranceTotalRate,
+-        2
+-      );
++      grosswage_ubi.innerHTML = round(grossUbiFromNetVariant1(c), 2);
+     }
+   });
+ }
+@@ -1067,6 +1084,11 @@ function calcGrossWage(c) {
+   if (i3 === true) writeValues(byId("grosswage_ubi").id, byId("grosswage_ubi").innerHTML);
+ }
+ 
++// Sotsiaalmaks ühelt brutopalgalt: 33%, kuid sotsiaalmaksu kuumäärast mitte vähem (kui märkeruut "socialtax_x" on valitud)
++function socialTaxFor(gross, c) {
++  return c.socialtaxX && gross * c.str < c.socialtaxMin ? round(c.socialtaxMin, 2) : round(gross * c.str, 2);
++}
++
+ // Sotsiaalmaks (miinimumkuumääraga)
+ function calcSocialTax(c) {
+   var socialtax = byId("socialtax");
+@@ -1077,16 +1099,11 @@ function calcSocialTax(c) {
+   if (c.in1 && c.socialtaxX && c.sum < c.socialtaxMin) socialtax.value = "NaN";
+   else if (c.in1 && c.socialtaxX && c.sum < (c.socialtaxMin / c.str) * (1 + c.str + 1 * c.uip1))
+     socialtax.value = round(c.socialtaxMin, 2);
+-  else if (
+-    c.socialtaxX &&
+-    (grosswage.value * c.str < c.socialtaxMin || grosswage_ubi.innerHTML * c.str < c.socialtaxMin)
+-  ) {
+-    if (grosswage.value * c.str < c.socialtaxMin) socialtax.value = round(c.socialtaxMin, 2);
+-    if (grosswage_ubi.innerHTML * c.str < c.socialtaxMin && i3 === true)
+-      socialtax_ubi.innerHTML = round(c.socialtaxMin, 2);
+-  } else {
+-    socialtax.value = round(grosswage.value * c.str, 2);
+-    if (i3 === true) socialtax_ubi.innerHTML = round(grosswage_ubi.innerHTML * c.str, 2);
++  else {
++    // iga variandi sotsiaalmaks arvutatakse oma brutopalgast eraldi: kui ainult ühe variandi sotsiaalmaks jäi
++    // kuumäära alla, jäi teise väli varem uuendamata (nt senise korra 292,38 eelmise arvutuse jäägina)
++    socialtax.value = socialTaxFor(grosswage.value, c);
++    if (i3 === true) socialtax_ubi.innerHTML = socialTaxFor(grosswage_ubi.innerHTML, c);
+   }
+   writeValues(socialtax.id, socialtax.value);
+   if (i3 === true) writeValues(socialtax_ubi.id, socialtax_ubi.innerHTML);
+@@ -1123,6 +1140,12 @@ function calcInsuranceAndPension(c) {
+   }
+ }
+ 
++// Tulumaks ühelt brutopalgalt: 0, kui palk jääb maksuvabast osast (koos töötaja kindlustusmaksetega) alla
++function incomeTaxOn(gross, uiEmployee, pension, c) {
++  if (gross < c.taxfree + gross * (1 * c.uip2 + c.fp1)) return round(0, 2);
++  return round((gross - uiEmployee - pension - c.taxfree) * c.itr, 2);
++}
++
+ // Tulumaks
+ function calcIncomeTax(c) {
+   var grosswage = byId("grosswage");
+@@ -1134,20 +1157,11 @@ function calcIncomeTax(c) {
+   var incometax = byId("incometax");
+   var incometax_ubi = byId("incometax_ubi");
+ 
+-  if (
+-    grosswage.value < c.taxfree + grosswage.value * (1 * c.uip2 + c.fp1) ||
+-    (i3 === true && grosswage_ubi.innerHTML < c.taxfree + grosswage_ubi.innerHTML * (1 * c.uip2 + c.fp1))
+-  ) {
+-    incometax.value = round(0, 2);
+-    if (i3 === true) incometax_ubi.innerHTML = round(0, 2);
+-  } else {
+-    incometax.value = round((grosswage.value - ui_employee.value - fpp_1.value - c.taxfree) * c.itr, 2);
+-    if (i3 === true)
+-      incometax_ubi.innerHTML = round(
+-        (grosswage_ubi.innerHTML - ui_employee_ubi.innerHTML - fpp_1_ubi.innerHTML - c.taxfree) * c.itr,
+-        2
+-      );
+-  }
++  // senise korra ja kodanikupalga variandi tulumaks otsustatakse kumbki oma brutopalga järgi
++  // (varem nullis üks tingimus mõlemad, kui ainult ühe variandi palk jäi maksuvaba osast alla)
++  incometax.value = incomeTaxOn(grosswage.value, ui_employee.value, fpp_1.value, c);
++  if (i3 === true)
++    incometax_ubi.innerHTML = incomeTaxOn(grosswage_ubi.innerHTML, ui_employee_ubi.innerHTML, fpp_1_ubi.innerHTML, c);
+   writeValues(incometax.id, incometax.value);
+   if (i3 === true) writeValues(incometax_ubi.id, incometax_ubi.innerHTML);
+ }
+diff --git a/moodulid/kalkulaator-uus.phtml b/moodulid/kalkulaator-uus.phtml
+index 16c3eb8..7f380a2 100644
+--- a/moodulid/kalkulaator-uus.phtml
++++ b/moodulid/kalkulaator-uus.phtml
+@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
+       </noscript>
+ 
+ 
+-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261126"></script>
++      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261127"></script>
+ 
+       <script>checkPeople();</script>
+ 
+diff --git a/moodulid/osad/01-top.phtml b/moodulid/osad/01-top.phtml
+index e0e7691..d1410a5 100644
+--- a/moodulid/osad/01-top.phtml
++++ b/moodulid/osad/01-top.phtml
+@@ -74,7 +74,7 @@ if ($fabv != 'details') { ?>
+       </noscript>
+ 
+ 
+-      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261126"></script>
++      <script src="/media/calculator/ubiTaxCalcCompare.js?v=20261127"></script>
+ 
+       <script>checkPeople();</script>
+ 
