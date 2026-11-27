@@ -2416,12 +2416,12 @@ function initializeCalculator() {
     same: "See leibkond ({household}) saab kodanikupalgaga kuus sama palju kui senise korra järgi.",
 
     // netotulu režiim: täiskasvanute neto on sama, võrreldakse tööandja kulu
-    costLess: "Selle leibkonna ({household}) netotulu tagamiseks kulutab tööandja kodanikupalgaga kuus {amount} võrra vähem kui senise korra järgi.",
-    costMore: "Selle leibkonna ({household}) netotulu tagamiseks kulutab tööandja kodanikupalgaga kuus {amount} võrra rohkem kui senise korra järgi.",
-    costSame: "Selle leibkonna ({household}) netotulu tagamiseks kulutab tööandja kodanikupalgaga sama palju kui senise korra järgi.",
+    costLess: "Selle leibkonna ({household}) soovitava täiskasvanu(te) netotulu tagamiseks ühes kuus peab tööandja kulutama {amount} võrra vähem kui senise korra järgi.",
+    costMore: "Selle leibkonna ({household}) soovitava täiskasvanu(te) netotulu tagamiseks ühes kuus peab tööandja kulutama {amount} võrra rohkem kui senise korra järgi.",
+    costSame: "Selle leibkonna ({household}) soovitava täiskasvanu(te) netotulu tagamiseks ühes kuus peab tööandja kulutama sama palju kui senise korra järgi.",
     // netotulu režiim, lapsed: lisalause
-    kidsMore: " Laste raha on kodanikupalgaga {amount} võrra suurem kui senise korra järgi.",
-    kidsLess: " Laste raha on kodanikupalgaga {amount} võrra väiksem kui senise korra järgi.",
+    kidsMore: " Lisanduv laste raha on kodanikupalgaga {amount} võrra suurem kui senise korra järgi.",
+    kidsLess: " Lisanduv laste raha on kodanikupalgaga {amount} võrra väiksem kui senise korra järgi.",
   };
   var TONES = ["is-more", "is-less", "is-same", "is-info"];
 
