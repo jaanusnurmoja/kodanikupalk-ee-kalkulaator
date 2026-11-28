@@ -83,6 +83,8 @@
                       onchange="setEurGross(this.value);outputCalc();drawChart();"
                       onclick="this.value = ''; resetAlert();">&nbsp;€ kuus
                     <br>
+                    <!-- Märkus, kui netotulu on kodanikupalgast väiksem või sellega võrdne (JS: ubiTaxCalcCompare.js, 11. osa) -->
+                    <p id="netubi-note" class="d-none" style="margin:6px 0 4px;padding:4px 8px;border-left:4px solid #6c757d;background:#f5f7fa;line-height:1.3;font-size:.85rem" role="status" aria-live="polite"></p>
                     <input class="css-checkbox" style="display: inline; margin: 3px" type="checkbox" id="adults2_x"
                       name="adults2_x" value="true" checked="checked" onchange="wageCalc();"><label class="chk-label" for="adults2_x"
                       style="display: inline" title="Mõlemal täiskasvanul on sama tulu">2 täiskasvanut</label>
