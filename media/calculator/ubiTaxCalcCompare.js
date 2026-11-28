@@ -1031,7 +1031,7 @@ function calcTaxFreeMinimum(c) {
 function grossUbiFromNetVariant1(c) {
   var a = c.addedTax / 100;
   var ins = c.fp1 + c.uip2;
-  var netFromEmployer = c.sum - c.ubiAdult;
+  var netFromEmployer = c.netFromEmployer; // sisestatud neto - kodanikupalk, mitte alla 0 (vt wageCalc)
   var grossWithoutIncomeTax = netFromEmployer / (1 - ins - a);
   if (grossWithoutIncomeTax * (1 - ins) <= c.taxfree) return grossWithoutIncomeTax;
   var denominator = (1 - ins) * (1 - c.itr) - a;
@@ -1046,7 +1046,7 @@ function calcGrossWageUbiFromNet(c) {
     if (variant.checked === true && variant.value == 2) {
       // variant 2: üks ja ainus tulumaks
       grosswage_ubi.innerHTML = round(
-        (c.sum - c.ubiAdult) / (1 - c.newFlatTax / 100 - (c.fp1 + c.uip2)),
+        c.netFromEmployer / (1 - c.newFlatTax / 100 - (c.fp1 + c.uip2)),
         2
       );
     } else {
@@ -1103,7 +1103,9 @@ function calcSocialTax(c) {
     // iga variandi sotsiaalmaks arvutatakse oma brutopalgast eraldi: kui ainult ühe variandi sotsiaalmaks jäi
     // kuumäära alla, jäi teise väli varem uuendamata (nt senise korra 292,38 eelmise arvutuse jäägina)
     socialtax.value = socialTaxFor(grosswage.value, c);
-    if (i3 === true) socialtax_ubi.innerHTML = socialTaxFor(grosswage_ubi.innerHTML, c);
+    // kodanikupalk katab neto üksi: palka pole, seega pole ka sotsiaalmaksu (kuumäär ei kehti nullpalgale)
+    if (i3 === true)
+      socialtax_ubi.innerHTML = c.ubiCoversNet ? round(0, 2) : socialTaxFor(grosswage_ubi.innerHTML, c);
   }
   writeValues(socialtax.id, socialtax.value);
   if (i3 === true) writeValues(socialtax_ubi.id, socialtax_ubi.innerHTML);
@@ -1221,7 +1223,7 @@ function applyTaxScenario(c) {
       setMuted(row_incometax2, false);
     } else {
       if (i3 === true) {
-        workNetWage.innerHTML = c.sum - c.ubiAdult;
+        workNetWage.innerHTML = c.netFromEmployer;
       } else {
         workNetWage.innerHTML = round(netwage.innerHTML - addedTaxField.innerHTML, 2);
       }
@@ -1245,7 +1247,8 @@ function calcWageFund(c) {
   if (i3 === true) {
     var wagefund_ubi = byId("wagefund_ubi");
     var wagefund_std = byId("wagefund_std");
-    totalNet.innerHTML = round(parseFloat(c.sum), 2);
+    // kodanikupalk katab neto üksi: töötaja kogu neto on kodanikupalk (mitte sisestatud väiksem summa)
+    totalNet.innerHTML = c.ubiCoversNet ? round(c.ubiAdult, 2) : round(parseFloat(c.sum), 2);
     wagefund_ubi.innerHTML = round(
       1 * byId("grosswage_ubi").innerHTML + 1 * byId("ui_employer_ubi").innerHTML + 1 * byId("socialtax_ubi").innerHTML,
       2
@@ -1438,7 +1441,8 @@ function calcPercentages(c) {
     var wagefundValue = K * byId("wagefund").value;
     writePercents({
       std: wagefundValue,
-      ubi: K * byId("wagefund_ubi").innerHTML,
+      // kodanikupalk katab neto üksi: KdP palgafond on 0, protsendid arvutatakse senise korra palgafondi alusel
+      ubi: c.ubiCoversNet ? wagefundValue : K * byId("wagefund_ubi").innerHTML,
       mixedUbi: wagefundValue,
       mixedStd: wagefundValue,
       incomeTaxUbi: false,
@@ -1449,11 +1453,15 @@ function calcPercentages(c) {
   if (byId("pct2").checked === true) {
     // Ajalugu: lisamaksu ja uue ühtse tulumaksu protsendi aluseks võeti grosswage_ubi; see ühtlustas
     // protsendi lehe ülaosas ja tabelis (enne oli tabelis väiksem).
+    var grossStd = K * byId("grosswage").value;
+    // kodanikupalk katab neto üksi: KdP bruto on 0, protsendid arvutatakse senise korra brutopalga alusel
+    // (0-ga jagamine annaks NaN / Infinity)
+    var grossUbi = c.ubiCoversNet ? grossStd : K * byId("grosswage_ubi").innerHTML;
     writePercents({
-      std: K * byId("grosswage").value,
-      ubi: K * byId("grosswage_ubi").innerHTML,
-      mixedUbi: K * byId("grosswage_ubi").innerHTML,
-      mixedStd: K * byId("grosswage").value,
+      std: grossStd,
+      ubi: grossUbi,
+      mixedUbi: grossUbi,
+      mixedStd: grossStd,
       incomeTaxUbi: true,
       zeroGuard: false,
       hh: hh,
@@ -1636,6 +1644,10 @@ function wageCalc() {
   var c = readWageContext();
   calcTaxFreeMinimum(c);
   c.sum = c.eur * c.workhours; // arvutuse alus: sisestatud summa
+  // Netotulu režiim: tööandjalt vajalik neto = sisestatud neto miinus täiskasvanu kodanikupalk, kuid mitte alla 0
+  c.netFromEmployer = Math.max(0, c.sum - c.ubiAdult);
+  // Sisestatud neto <= täiskasvanu kodanikupalk: kodanikupalk katab selle üksi, tööandja kulu kodanikupalgaga on 0
+  c.ubiCoversNet = c.in3 && c.ubiAdult > 0 && c.sum <= c.ubiAdult;
   c.incomeTaxRate = c.sum - c.taxfree <= 0 ? 0 : c.itr;
   calcGrossWage(c);
   calcSocialTax(c);
@@ -1655,6 +1667,8 @@ function wageCalc() {
   renderFamilyChart(chartModel);
   // Lause tulemuse kohta loeb tabeli spane, kuhu applyHousehold on leibkonna väärtused juba kirjutanud. Vt 11. osa.
   renderResultSentence(c);
+  // Märkus sissetulekulahtri juures (netotulu <= kodanikupalk). Vt 11. osa.
+  renderNetUbiNote(c);
   // Maksumudeli valik diagrammi juures peegeldab tabeli valikut. Vt 12. osa.
   syncTaxScenarioButtons();
   // Täiendavate kärbete kerimisväli näitab Fabriku välja #all_value_eur_custom praegust väärtust. Vt 13. osa.
@@ -2394,6 +2408,9 @@ function initializeCalculator() {
  *       järgi väärtuste vahe;
  *     - netotulu režiimis (input_3) on täiskasvanute neto mõlemas süsteemis sama (sisestatud summa),
  *       seega ei oleks neto vahe sisuline. Siis võrreldakse tööandja kulu (palgafondi) ja laste raha.
+ *   Netotulu režiimis, kui sisestatud neto on täiskasvanu kodanikupalgast väiksem või sellega võrdne
+ *   (c.ubiCoversNet), on tööandja kulu kodanikupalgaga 0: siis on lause coveredSentence. Lisaks näitab
+ *   renderNetUbiNote märkust sissetulekulahtri juures (#netubi-note).
  *   Lause EI kirjuta ühtegi arvutuse välja; ta ainult loeb neid. Kui lehel pole elementi
  *   #result-sentence (moodulit pole lisatud), ei juhtu midagi. Kui arvutuse tulemus pole arv
  *   (tühi sisend, "NaN"), lause peidetakse.
@@ -2422,6 +2439,15 @@ function initializeCalculator() {
     // netotulu režiim, lapsed: lisalause
     kidsMore: " Lisanduv laste raha on kodanikupalgaga {amount} võrra suurem kui senise korra järgi.",
     kidsLess: " Lisanduv laste raha on kodanikupalgaga {amount} võrra väiksem kui senise korra järgi.",
+
+    // netotulu režiim, sisestatud neto <= kodanikupalk: kodanikupalk katab selle, tööandja kulu on 0
+    // ({cost} = senise korra tööandja kulu)
+    coveredMore: "Selle leibkonna ({household}) soovitava täiskasvanu(te) netotulu tagamiseks ei pea tööandja kodanikupalgaga ühes kuus midagi kulutama (senise korra järgi peab tööandja kulutama {cost}). Kodanikupalk tagab täiskasvanu(te)le soovitust {amount} võrra suurema netotulu.",
+    coveredSame: "Selle leibkonna ({household}) soovitava täiskasvanu(te) netotulu tagab kodanikupalk üksi: tööandja ei pea kodanikupalgaga ühes kuus midagi kulutama (senise korra järgi peab tööandja kulutama {cost}).",
+    // märkus sissetulekulahtri juures (#netubi-note); {ubi} = täiskasvanu kodanikupalk
+    noteLess: "Sisestatud netotulu on kodanikupalgast ({ubi}) väiksem: kodanikupalk katab selle üksi ja tööandja kulu on kodanikupalgaga 0 €.",
+    noteSame: "Sisestatud netotulu on sama suur kui kodanikupalk ({ubi}): kodanikupalk katab selle üksi ja tööandja kulu on kodanikupalgaga 0 €.",
+    noteBase: " Kodanikupalga veeru protsendid on seetõttu senise korra alusel.",
   };
   var TONES = ["is-more", "is-less", "is-same", "is-info"];
 
@@ -2459,14 +2485,17 @@ function initializeCalculator() {
     return parts.join(", ");
   }
 
-  // Täidab malli: {household} ja {amount}; summa läheb paksu kirja
-  function fill(template, household, amount) {
+  // Täidab malli: {household}, {amount} ja {cost} (senise korra tööandja kulu); summa läheb paksu kirja
+  function fill(template, household, amount, cost) {
     return template
       .replace("{household}", function () {
         return esc(household);
       })
       .replace("{amount}", function () {
         return "<strong>" + esc(eurText(amount)) + "</strong>";
+      })
+      .replace("{cost}", function () {
+        return "<strong>" + esc(eurText(cost)) + "</strong>";
       });
   }
 
@@ -2480,8 +2509,27 @@ function initializeCalculator() {
       : { tone: "is-less", html: fill(TEXT.less, household, -diff) };
   }
 
-  // Netotulu režiim: tööandja kulu (palgafond) ja laste raha. Laste vahe võetakse otse sisenditest,
+  // Netotulu režiim: laste raha lisalause. Laste vahe võetakse otse sisenditest,
   // mitte neto spanidest, et sentide ümardusvahe ei annaks "0,01 € vähem".
+  function kidsText(household, hh) {
+    var kids = cents(hh.ubiExtra - hh.childStd);
+    if (kids > 0) return fill(TEXT.kidsMore, household, kids);
+    if (kids < 0) return fill(TEXT.kidsLess, household, -kids);
+    return "";
+  }
+
+  // Netotulu režiim, sisestatud neto <= täiskasvanu kodanikupalk (c.ubiCoversNet): tööandja kulu kodanikupalgaga on 0.
+  // Kasu = leibkonna täiskasvanute kodanikupalk miinus soovitud neto; senise korra tööandja kulu tuleb tabelist.
+  function coveredSentence(c, household) {
+    var hh = c.hh;
+    var stdCost = cents(spanValue("wagefund_std"));
+    if (!isFinite(stdCost)) return null;
+    var gain = cents(hh.adults * (c.ubiAdult - c.sum));
+    var html = gain > 0 ? fill(TEXT.coveredMore, household, gain, stdCost) : fill(TEXT.coveredSame, household, 0, stdCost);
+    return { tone: "is-info", html: html + kidsText(household, hh) };
+  }
+
+  // Netotulu režiim: tööandja kulu (palgafond) ja laste raha.
   function costSentence(household, hh) {
     var cost = cents(spanValue("wagefund_ubi") - spanValue("wagefund_std"));
     if (!isFinite(cost)) return null;
@@ -2489,15 +2537,13 @@ function initializeCalculator() {
     if (cost === 0) html = fill(TEXT.costSame, household, 0);
     else if (cost < 0) html = fill(TEXT.costLess, household, -cost);
     else html = fill(TEXT.costMore, household, cost);
-    var kids = cents(hh.ubiExtra - hh.childStd);
-    if (kids > 0) html += fill(TEXT.kidsMore, household, kids);
-    else if (kids < 0) html += fill(TEXT.kidsLess, household, -kids);
-    return { tone: "is-info", html: html };
+    return { tone: "is-info", html: html + kidsText(household, hh) };
   }
 
   function buildSentence(c) {
     var household = householdText(c, c.hh);
     if (household === null) return null;
+    if (c.ubiCoversNet && c.sum > 0) return coveredSentence(c, household);
     return c.in3 ? costSentence(household, c.hh) : netSentence(household);
   }
 
@@ -2526,7 +2572,30 @@ function initializeCalculator() {
     setHidden(box, false);
   }
 
+  /*
+    Märkus sissetulekulahtri juures (#netubi-note): ainult netotulu režiimis, kui 0 < neto <= täiskasvanu
+    kodanikupalk. Kui sama tekst on juba kirjas, DOM-i ei puututa (ekraanilugeja ei loe sama märkust uuesti).
+    Elementi pole vaja olemas olla: siis ei juhtu midagi.
+  */
+  var lastNote = null;
+  function renderNetUbiNote(c) {
+    var box = document.getElementById("netubi-note");
+    if (box === null || !c) return;
+    var text = "";
+    var sum = parseFloat(c.sum);
+    if (c.in3 && c.ubiAdult > 0 && sum > 0 && cents(sum) <= cents(c.ubiAdult)) {
+      text = (cents(sum) < cents(c.ubiAdult) ? TEXT.noteLess : TEXT.noteSame).replace("{ubi}", eurText(c.ubiAdult));
+      // kodanikupalga veeru protsendid on senise korra alusel, välja arvatud siis, kui alus on netotulu (pct3)
+      if (byId("pct3").checked !== true) text += TEXT.noteBase;
+    }
+    if (text === lastNote) return;
+    lastNote = text;
+    box.textContent = text;
+    setHidden(box, text === "");
+  }
+
   window.renderResultSentence = renderResultSentence;
+  window.renderNetUbiNote = renderNetUbiNote;
 })();
 
 
